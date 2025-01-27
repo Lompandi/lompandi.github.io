@@ -1,20 +1,10 @@
-
 body {
     font-family: monospace;
     background-color: #3b5258;
     font-size: medium;
     position: relative; 
     margin: 0;
-}
-
-.post-title {
-    font-family: 'Poppins', sans-serif;
-    color: aliceblue;
-    z-index: 2;
-    position: absolute;
-    top: 80px;
-    left: 50%;
-    transform: translateX(-50%);
+    overflow: hidden; /* Hides the main scrollbar */
 }
 
 .pannel-top {
@@ -22,9 +12,11 @@ body {
     height: 100px;
     background-color: #304b51;
     z-index: 1;
-    position: absolute; 
-    top: 0; 
+    position: fixed;
+    top: 0;          
     left: 0;
+    right: 0;
+    transition: transform 0.3s ease; /* Smooth transition for panel movement */
 }
 
 .pannel-top h1 {
@@ -70,4 +62,39 @@ body {
 .pannel-top a:hover::after {
     width: 100%; 
     left: 0; 
+}
+
+#markdown-container {
+    font-family: 'Poppins', sans-serif;
+    font-size: x-large;
+    margin-left: 50%;
+    margin-top: 5%; 
+    transform: translateX(-50%);
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 100%;
+    max-height:900px;
+    overflow-y: auto;
+    position: relative;
+    z-index: 3;
+    padding: 40px;
+    opacity: 1; /* Initially visible */
+    transition: transform 0.3s ease, opacity 0.3s ease; /* Smooth transitions for movement and fading */
+    color: aliceblue;
+}
+
+#markdown-container::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+#markdown-container {
+    -ms-overflow-style: none; 
+    scrollbar-width: none;
+}
+
+::selection {
+    background-color: #ff4081; 
+    color: white; 
 }
