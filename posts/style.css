@@ -3,40 +3,28 @@ body {
     font-family: monospace;
     background-color: #3b5258;
     font-size: medium;
-    position: relative;
-    display: flex;
-    align-items: center;
+    position: relative; 
     margin: 0;
 }
 
-.red-dot {
-    width: 20px;
-    height: 20px;
-    background-color: crimson;
-    border-radius: 50%;
-    margin-left: 1.7%;
-    margin-top: 6px;
+.post-title {
+    font-family: 'Poppins', sans-serif;
+    color: aliceblue;
     z-index: 2;
-    transition: background-color 0.1s ease;
-}
-
-.red-dot:active {
-    background-color: lightcoral
-}
-
-.welcome {
-    position: relative;
-    margin-left: 1.7%;
-    margin-top: 6px;
-    z-index: 2;
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .pannel-top {
-    width:  100%;
+    width: 100%;
     height: 100px;
     background-color: #304b51;
     z-index: 1;
-    position: absolute;
+    position: absolute; 
+    top: 0; 
+    left: 0;
 }
 
 .pannel-top h1 {
@@ -48,8 +36,11 @@ body {
     display: flex;
     justify-content: flex-end;
     margin-right: 1.7%;
-    margin-top: 25px;
+    margin-top: 6px;
     gap: 18px;
+    position: absolute; 
+    top: 10%; 
+    right: 20px; 
 }
 
 .pannel-top a {
@@ -57,10 +48,11 @@ body {
     color: inherit;
     font-size: 25px;
     transition: color 0.3s ease;
+    position: relative; 
 }
 
 .pannel-top a:hover {
-    color:#445b60;
+    color: #445b60;
 }
 
 .pannel-top a::after {
