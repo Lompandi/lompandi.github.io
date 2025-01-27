@@ -1,5 +1,16 @@
 
 body {
     font-family: monospace;
+    background-color: #4d5e64;
     font-size: medium;
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+.red-dot {
+    width: 50px;
+    height: 50px;
+    background-color: crimson;
+    border-radius: 50%;
 }
