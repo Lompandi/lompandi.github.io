@@ -130,7 +130,7 @@ public:
 第一個函式 ```get_legs``` 是所謂的"純虛擬函式"，即，其衍伸型別**必須**自行定義其函數內容。
 
 因此，可以看到 ```Dog``` 以及 ```Human``` 類別都自行定義了 ```get_legs()```:
-```
+```c++
 class Dog : public Creature {
 public:
     int get_legs() const override { return 4; }
@@ -170,7 +170,7 @@ virtual void speak(const std::string& message) const {
 
 (記憶體位址上到下由小到大排列)
 
-![ClassAndVtablePtr] (imgs/mem_layout.drawio.png)
+![ClassAndVtablePtr](imgs/mem_layout.drawio.png)
 
 (p.s. 排列方式可能因編譯器不同而有所差異)
 
