@@ -8,17 +8,31 @@
     <title>ConsoleBreak's breakpoint</title>
 </head>
 <body>
-    <!--Breakpoint dot-->
-    <div class="red-dot"></div>
-    <div class="welcome">
-        <h1>ConsoleBreak's Breakspot</h1>
-    </div>
-    <!--pannel top-->
+    <!--top pannel-->
     <div class="pannel-top">
+         <!--Breakpoint dot-->
+        <div class="red-dot"></div>
+        <div class="welcome">
+            <h1>ConsoleBreak's Breakspot</h1>
+        </div>
+
         <div class="links-container">
             <h1><a href="index.html">Home</a></h1>
             <h1><a href="posts/index.html">Posts</a></h1>
         </div>
     </div>
+
+    <div class="intro">
+        <img src="imgs/my-icon.jpg">
+        <h1>Yello there!, I'm ConsoleBreak!</h1>
+        <h1>A passionate noob learning cyber security</h1>
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const introElement = document.querySelector('.intro');
+        introElement.classList.add('loaded');
+    });
+    </script>
 </body>
 </html>

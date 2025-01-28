@@ -4,7 +4,7 @@ body {
     font-size: medium;
     position: relative; 
     margin: 0;
-    overflow: hidden; /* Hides the main scrollbar */
+    overflow: hidden;
 }
 
 .pannel-top {
