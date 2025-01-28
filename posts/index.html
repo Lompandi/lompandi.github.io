@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConsoleBreak's Breakpoint</title>
+
+    <!-- Include the marked library from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <!-- Panel top -->
@@ -24,8 +26,7 @@
             fetch('post1.md') 
                 .then(response => response.text()) 
                 .then(markdownContent => {
-                    var converter = new showdown.Converter();
-                    var htmlContent = converter.makeHtml(markdownContent);
+                    var htmlContent = marked.parse(markdownContent);
     
                     document.getElementById('markdown-container').innerHTML = htmlContent;
                 })
@@ -36,4 +37,3 @@
     </script>
 </body>
 </html>
-
