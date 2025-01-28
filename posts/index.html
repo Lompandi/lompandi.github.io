@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
+
+    <!--shiki Include-->
+    <script src="https://unpkg.com/shiki@0.14.5/dist/index.unpkg.iife.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConsoleBreak's Breakpoint</title>
 
@@ -29,11 +34,29 @@
                     var htmlContent = marked.parse(markdownContent);
     
                     document.getElementById('markdown-container').innerHTML = htmlContent;
+
+                    setTimeout(() => {
+                        const langs = ["c++", "c"];
+                        shiki.getHighlighter({ theme: "dark-plus", langs })
+                            .then(highlighter => {
+                                document.querySelectorAll("pre code").forEach(async (n) => {
+                                    const lang = [...n.classList]
+                                        .find(c => c.match(/^language-/))?.substring(9);
+                                    
+                                    if (lang && !langs.includes(lang)) {
+                                        await highlighter.loadLanguage(lang);
+                                    }
+                                    
+                                    const code = highlighter.codeToHtml(n.innerText, { lang });
+                                    n.parentNode.outerHTML = code;
+                                });
+                            });
+                    }, 100);
                 })
                 .catch(error => {
                     console.error('Error fetching the markdown file:', error);
                 });
-        });
+    });
     </script>
 </body>
 </html>

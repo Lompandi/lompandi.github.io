@@ -176,5 +176,119 @@ virtual void speak(const std::string& message) const {
 
 (p.s. 排列方式可能因編譯器不同而有所差異)
 
+假設也程式碼使用了 Dog 和 Human:
+```c++
+int main(){
+    Dog dog;
+    Human human;
+
+    Creature* creatures[] = { &dog, &human };
+    
+    for (Creature* creature : creatures) {
+        std::cout << "Creature has " << creature->get_legs() << " legs." << std::endl;
+        creature->speak("Hello!"); 
+    }
+
+    dog.bark();
+    human.speak("Hello, world!");
+
+    return 0;
+}
+```
+我們先來看 IDA 反組譯後的 ```Human::get_legs```:
+```c++
+.text:004014EC ; int Human::get_legs()
+.text:004014EC                 public __ZNK5Human8get_legsEv
+.text:004014EC __ZNK5Human8get_legsEv proc near        ; DATA XREF: .rdata:off_4061EC↓o
+.text:004014EC
+.text:004014EC var_4           = dword ptr -4
+.text:004014EC this            = dword ptr  8
+.text:004014EC
+.text:004014EC ; __unwind {
+.text:004014EC                 push    ebp
+.text:004014ED                 mov     ebp, esp
+.text:004014EF                 sub     esp, 4
+.text:004014F2                 mov     [ebp+var_4], ecx
+.text:004014F5                 mov     eax, 2
+.text:004014FA                 leave
+.text:004014FB                 retn
+.text:004014FB ; } 
+.text:004014FB __ZNK5Human8get_legsEv endp
+```
+這裡幫大家複習一下 Windows x64 的 Calling Convention:
+
+在呼叫一個函數以前，函數的前四個參數會分別對應到四個不同的暫存器，剩下參數的會直接透過堆疊傳入
+
+|參數順序  | 暫存器    |
+|----------|-----------|
+|1         | rcx       |
+|2         | rdx       |
+|3         | r8        |
+|4         | r9        |
+|>4        | 堆疊      |
+|回傳值    | rax       |
+
+這裡我們看到 ```get_legs``` 先是壓入基底暫存 (ebp)， 之後把 stack top (esp 代表的位址) 向下移4個 BYTE
+以騰出空間給 var_4，之後賦予 var_4 ecx(即第一個參數) 的值，然後把2放入 eax，接著 return。
+
+到這裡可能會有人問 :
+
+"```get_legs``` 不是沒有參數嗎? 為啥編譯後莫名其妙多出一個參數來了?"
+
+這裡說明一下，C++中類別的成員函數 (Member Function) 如果沒被宣告為靜態 (即使用```static```關鍵字) 的話，編譯後產生的第一個參數將會是```this```指標，且編譯後不論```this```是否在函數中被使用，編譯器都會將其傳入。
+
+回到正題，我們可以在 IDA 中由衍伸型別的 virtual function 找到其 Virtual Table，方法如下 :
+
+1. 找到類別中任意一個 virtual function (以```Human```中的```speak```函數為例):
+
+2. 定位到函數的開始位址，然後在IDA中用 ```Ctrl + X``` 或 ```View``` -> ```Open Subviews``` -> ```Cross References``` 來做交叉引用(Cross Reference)的查詢。
+3. 在列表中，其中一筆結果會包含 ```dx_offset...```(x 可為 d, q，分別代表32位元指標和64位元)， 選取並定位到其位址。
+
+4. 向上尋找，直到你看到 ```off_...```，其即為 Vtable 的起始位址
+
+
+
+
+經由 g++ (C++11) 編譯後 IDA 產生的 ```main``` 偽代碼如下 (編譯器產生的 STL 模版代碼和解構子省略):
+```c++
+  p_argc = (Dog *)&argc;
+  __main();
+  v24 = &off_4061D4;
+  v23 = &off_4061EC;
+  v21 = &v24;
+  v22 = &v23;
+  v36 = (int *)&v21;
+  CreatureIter = (int *)&v21;
+  CreatureEnd = (int *)&v23;
+  while ( CreatureIter != CreatureEnd )
+  {
+    pCreature = *CreatureIter;
+    legs = (**(int (__fastcall ***)(int))pCreature)(pCreature);
+    CreatureHas = std::operator<<<std::char_traits<char>>(&std::cout, "Creature has ");
+    v5 = std::ostream::operator<<(CreatureHas, legs);
+    v6 = std::operator<<<std::char_traits<char>>(v5, " legs.");
+    std::ostream::operator<<(v6, &std::endl<char,std::char_traits<char>>);
+    v7 = *(void (__thiscall **)(int, int *, int))(*(_DWORD *)pCreature + 12);
+    /* ... */
+    v15 = (char *)&v31 + 3;
+    std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string(&v25);
+    v7(pCreature, &v25, v10);
+    /* destructors... */
+    ++CreatureIter;
+  }
+  Dog::bark(v12);
+  /* ... */
+  v39 = (int)&v33 + 3;
+  p_argc = (Dog *)"Hello, world!";
+  std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string(v32);
+  Human::speak(v32);
+  /* destructors... */
+  return 0;
+ ```
+ 先來看
+ 
+ 
+
+
 
 

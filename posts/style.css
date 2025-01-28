@@ -108,7 +108,35 @@ body {
     text-align: left;
 }
 
+#markdown-container a {
+    color: #ff4081;
+    text-decoration: none; 
+    transition: color 0.3s ease;
+}
+
+#markdown-container a:hover {
+    color: #ff6f91;
+    text-decoration: underline;
+}
+
+pre.shiki.dark-plus {
+    background-color: transparent !important;
+}
+
+pre code {
+    display: block;
+    background-color: #202F2F;
+    font-family: inherit;
+    padding: 20px;
+    border-radius: 15px; 
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
 ::selection {
     background-color: #ff4081; 
     color: white; 
 }
+
+
