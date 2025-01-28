@@ -301,7 +301,7 @@ int main(){
  
  其相對應的偽代碼:
  
- ```
+ ```c++
  v7 = *(void (__thiscall **)(int *, int *, int))(*pCreature + 12);
  std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string(
       &v26,
