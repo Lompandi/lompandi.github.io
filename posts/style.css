@@ -89,9 +89,23 @@ body {
     height: 0px;
 }
 
+#markdown-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
 #markdown-container {
     -ms-overflow-style: none; 
     scrollbar-width: none;
+}
+
+#markdown-container table, #markdown-container th, #markdown-container td {
+    border: 1px solid #ddd;
+}
+
+#markdown-container th, #markdown-container td {
+    padding: 10px;
+    text-align: left;
 }
 
 ::selection {
