@@ -29,7 +29,7 @@ Microsoft UWP 為 Windows 版本的開發基礎。
 
 先給大家看一下有無偵錯檔的差異:
 
-![使用偵錯檔](https://lompandi.github.io/posts/imgs/symbolized.jpg)
-![未使用偵錯檔](https://lompandi.github.io/posts/imgs/non-symbolized.jpg)
+![使用偵錯檔](https://lompandi.github.io/posts/imgs/symbolized.png)
+![未使用偵錯檔](https://lompandi.github.io/posts/imgs/non-symbolized.png)
 
 
