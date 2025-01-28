@@ -75,16 +75,6 @@ https://www.mediafire.com/file/c2rw8416mw9xvln/China_Windows_Client_1.16.201.7z/
 
 三個檔案都分析完後，就可以來初步的逆向工程了。
 
-## ClientInstance
-現代遊戲一般都有一個玩家X)，而在C++中通常會以一個類別來表示(e.g. Player, Actor...)
-
-Minecraft 中也有 Player 類別，而本地玩家的 Player 類別又是基於 LocalPlayer 類別所衍伸出來的，
-ClientInstance 及包含了LocalPlayer類別。另外ClientInstance 還包含很多額外的資料，如遊戲類別。
-因為網上找不到相關的圖，所以我就自己畫了。
-
-![MinecraftMainClassStructure](https://lompandi.github.io/posts/imgs/MCClass.drawio.png)
-
-其中 LocalPlayer 的指標可以由 ClientInstance 的一個 getter ```getLocalPlayer```得到，而 ```ClientInstance``` 本身是 ```IClientInstance``` 介面的衍伸類別，```getLocalPlayer``` 則是 ```IClientInstance``` 的虛擬函數，所以一般為了方便這裡會用 Virtual Function Call 來呼叫 ```getLocalPlayer```
 ### Virtual Table
 很多人接觸遊戲外掛撰寫時可能常常聽到 Vtable ，即 Virtual Table。 至於它到底是甚麼，下面就來簡單解說一下。
 
@@ -174,9 +164,17 @@ virtual void speak(const std::string& message) const {
 
 ![vtable-layout](https://lompandi.github.io/posts/imgs/vtable.drawio.png)
 
+而擁有 Virtual Table 的類別則會於其起始位置建立一個 Vtable Pointer 來連結虛擬表，如有一個類別```class```，其有一個虛擬表，
+
+其記憶體布局如下
+
+(記憶體位址上到下由小到大排列)
+
+![ClassAndVtablePtr] (imgs/mem_layout.drawio.png)
+
 (p.s. 排列方式可能因編譯器不同而有所差異)
 
-假設也程式碼使用了 Dog 和 Human:
+假設程式碼使用了 Dog 和 Human:
 ```c++
 int main(){
     Dog dog;
@@ -195,7 +193,9 @@ int main(){
     return 0;
 }
 ```
-我們先來看 IDA 反組譯後的 ```Human::get_legs```:
+
+### C++ Calling Convention
+來看 IDA 反組譯後的 ```Human::get_legs```:
 ```c++
 .text:004014EC ; int Human::get_legs()
 .text:004014EC                 public __ZNK5Human8get_legsEv
@@ -231,12 +231,13 @@ int main(){
 這裡我們看到 ```get_legs``` 先是壓入基底暫存 (ebp)， 之後把 stack top (esp 代表的位址) 向下移4個 BYTE
 以騰出空間給 var_4，之後賦予 var_4 ecx(即第一個參數) 的值，然後把2放入 eax，接著 return。
 
-到這裡可能會有人問 :
+看到這裡可能會有人問 :
 
 "```get_legs``` 不是沒有參數嗎? 為啥編譯後莫名其妙多出一個參數來了?"
 
 這裡說明一下，C++中類別的成員函數 (Member Function) 如果沒被宣告為靜態 (即使用```static```關鍵字) 的話，編譯後產生的第一個參數將會是```this```指標，且編譯後不論```this```是否在函數中被使用，編譯器都會將其傳入。
 
+### Fetching Virtual Table
 回到正題，我們可以在 IDA 中由衍伸型別的 virtual function 找到其 Virtual Table，方法如下 :
 
 1. 找到類別中任意一個 virtual function (以```Human```中的```speak```函數為例):
@@ -246,49 +247,83 @@ int main(){
 
 4. 向上尋找，直到你看到 ```off_...```，其即為 Vtable 的起始位址
 
+![gif-demo](vids/getting_vtable.gif)
 
-
-
-經由 g++ (C++11) 編譯後 IDA 產生的 ```main``` 偽代碼如下 (編譯器產生的 STL 模版代碼和解構子省略):
+之後，我們可以看到兩個衍伸類別的 Virtual Function Thunk 布局:
+#### class Dog
 ```c++
-  p_argc = (Dog *)&argc;
-  __main();
-  v24 = &off_4061D4;
-  v23 = &off_4061EC;
-  v21 = &v24;
-  v22 = &v23;
-  v36 = (int *)&v21;
-  CreatureIter = (int *)&v21;
-  CreatureEnd = (int *)&v23;
-  while ( CreatureIter != CreatureEnd )
-  {
-    pCreature = *CreatureIter;
-    legs = (**(int (__fastcall ***)(int))pCreature)(pCreature);
-    CreatureHas = std::operator<<<std::char_traits<char>>(&std::cout, "Creature has ");
-    v5 = std::ostream::operator<<(CreatureHas, legs);
-    v6 = std::operator<<<std::char_traits<char>>(v5, " legs.");
-    std::ostream::operator<<(v6, &std::endl<char,std::char_traits<char>>);
-    v7 = *(void (__thiscall **)(int, int *, int))(*(_DWORD *)pCreature + 12);
-    /* ... */
-    v15 = (char *)&v31 + 3;
-    std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string(&v25);
-    v7(pCreature, &v25, v10);
-    /* destructors... */
-    ++CreatureIter;
-  }
-  Dog::bark(v12);
-  /* ... */
-  v39 = (int)&v33 + 3;
-  p_argc = (Dog *)"Hello, world!";
-  std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string(v32);
-  Human::speak(v32);
-  /* destructors... */
-  return 0;
- ```
- 先來看
- 
- 
+.rdata:004061D4 off_4061D4      dd offset __ZNK3Dog8get_legsEv
+.rdata:004061D4                                         ; DATA XREF: _main+17↑o
+.rdata:004061D4                                         ; Dog::~Dog()+9↑o
+.rdata:004061D4                                         ; Dog::get_legs(void)
+.rdata:004061D8                 dd offset __ZN3DogD1Ev  ; Dog::~Dog()
+.rdata:004061DC                 dd offset __ZN3DogD0Ev  ; Dog::~Dog()
+.rdata:004061E0                 dd offset __ZNK8Creature5speakERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE ; Creature::speak(std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>> const&)
+```
 
+#### class Human
+```c++
+.rdata:004061EC off_4061EC      dd offset __ZNK5Human8get_legsEv
+.rdata:004061EC                                         ; DATA XREF: _main+1F↑o
+.rdata:004061EC                                         ; Human::~Human()+9↑o
+.rdata:004061EC                                         ; Human::get_legs(void)
+.rdata:004061F0                 dd offset __ZN5HumanD1Ev ; Human::~Human()
+.rdata:004061F4                 dd offset __ZN5HumanD0Ev ; Human::~Human()
+.rdata:004061F8                 dd offset __ZNK5Human5speakERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE ; Human::speak(std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>> const&)
+
+
+
+```
+接下來我們來看經由 g++ (C++11) 32 位元編譯後 IDA 產生的偽代碼
+
+首先原代碼中的 ```get_legs``` 呼叫:
+ ```c++ 
+ creature->get_legs();
+ ```
+ 以及其相對應的偽代碼:
+ ```c++
+ (**(int (__fastcall ***)(int))pCreature)(pCreature);
+ ```
+ 
+ ```(int (__fastcall ***)(int))```是一個函數指標的型別宣告。```__fastcall``` 是一種呼叫約定（calling convention），表示函數的參數會通過寄存器傳遞，而不是通過堆疊。可以暫時忽略，因為它主要影響函數呼叫的底層實現細節。
+ 
+這段偽代碼的解讀如下：
+
+```pCreature``` 被轉型為一個類別的指標。
+
+接著，我們解引用這個指標，得到虛擬表中第一項 ( 索引值 0 ) 的函數地址。
+
+最後，我們呼叫這個函數，並將 ```pCreature``` 作為參數```this```給它。
+
+由上述解析，可以推斷出函數的原型應該是 ```int some_func(void*)```。由於 IDA 無法準確判斷型別，它將第一個參數 this 的32位元指標視為一個 int 型別的參數。
+
+ 再來看 ``` creature->speak("Hello!");```
+ 
+ 其相對應的偽代碼:
+ 
+ ```
+ v7 = *(void (__thiscall **)(int *, int *, int))(*pCreature + 12);
+ std::__cxx11::basic_string<char,std::char_traits<char>,std::allocator<char>>::basic_string(
+      &v26,
+      "Hello!",
+      (char *)&v32 + 3); //std::string str = "Hello";
+ v7(pCreature, &v26);
+ ```
+ 首先，由 ```*pCreature``` 取得虛擬表的起始位址。
+ 
+ 接著加入偏移值 12，我們可以將其轉換為索引值，由於這是32位元的執行檔，所以指標大小為 4 個 byte，12 / 4 = 3
+ 所以索引值是 3，所以呼叫 ```speak```，而則為指向一個```std::string```物件的指標。
+ 
+ ## ClientInstance
+現代遊戲一般都有一個玩家X)，而在C++中通常會以一個類別來表示(e.g. Player, Actor...)
+
+Minecraft 中也有 Player 類別，而本地玩家的 Player 類別又是基於 LocalPlayer 類別所衍伸出來的，
+ClientInstance 及包含了LocalPlayer類別。另外ClientInstance 還包含很多額外的資料，如遊戲類別。
+因為網上找不到相關的圖，所以我就自己畫了。
+
+![MinecraftMainClassStructure](https://lompandi.github.io/posts/imgs/MCClass.drawio.png)
+
+其中 LocalPlayer 的指標可以由 ClientInstance 的一個 getter ```getLocalPlayer```得到，而 ```ClientInstance``` 本身是 ```IClientInstance``` 介面的衍伸類別，```getLocalPlayer``` 則是 ```IClientInstance``` 的虛擬函數，所以一般為了方便這裡會用 Virtual Function Call 來呼叫 ```getLocalPlayer```
 
 
 
