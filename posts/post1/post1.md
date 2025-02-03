@@ -84,7 +84,7 @@ ClientInstance 及包含了LocalPlayer類別。另外ClientInstance 還包含很
 
 ![MinecraftMainClassStructure](https://lompandi.github.io/posts/imgs/MCClass.drawio.png)
 
-其中 LocalPlayer 的指標可以由 ClientInstance 的一個 getter ```getLocalPlayer```得到，而 ```ClientInstance``` 本身是 ```IClientInstance``` 介面的衍伸類別，```getLocalPlayer``` 則是 ```IClientInstance``` 的虛擬函數，所以一般為了方便這裡會用 Virtual Function Call 來呼叫 ```getLocalPlayer```
+其中 LocalPlayer 的指標可以由 ClientInstance 的一個 getter ```getLocalPlayer```得到，而 ```ClientInstance``` 本身是 ```IClientInstance``` 介面的衍伸類別，```getLocalPlayer``` 則是 ```IClientInstance``` 的虛擬函數，所以一般為了方便這裡會用 Virtual Function Call 來呼叫 ```getLocalPlayer```，
 
 
 
