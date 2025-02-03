@@ -24,7 +24,7 @@
 
 這些暫存器應該不陌生，那其實還有另一類暫存器，專門改變或控制CPU行為，稱為[控制暫存器](https://en.wikipedia.org/wiki/Control_register)，在 64 位元系統上存在 Cr0 ~ Cr4 和 Cr8 這六種控制暫存，其暫存內容儲存了可以控制CPU行為的資料，以64位元模式 (64-bit mode, long mode) 來說，結構如下:
 
-![ref1](https://github.com/Lompandi/lompandi.github.io/blob/main/posts/post3/imgs/062111_1434_x86x8664CPU1.png)
+![ref1](https://lompandi.github.io/posts/post3/imgs/062111_1434_x86x8664CPU1.png)
 
 其中灰色區域為保留欄位。
 
@@ -47,7 +47,7 @@
 |51 ~ 12|-    | 指定**4級分頁表**的**基底位址**|
 
 ### Cr4:
-![cr4](https://github.com/Lompandi/lompandi.github.io/blob/main/posts/post3/imgs/CR4.jpg)
+![cr4](https://lompandi.github.io/posts/post3/imgs/CR4.jpg)
 |位元|欄位名稱|意義|
 |----|--------|----|
 |21  | SMAP   | 指定SMAP是否生效|
@@ -98,7 +98,7 @@
 
 ## II.3 虛擬位址到實體位址的轉換 (4KB 分頁)
 
-![ref2]([./imgs/](https://github.com/Lompandi/lompandi.github.io/blob/main/posts/post3/imgs/x64-paging.png)
+![ref2](https://lompandi.github.io/posts/post3/imgs/x64-paging.png)
 
 ### 說明:
 
