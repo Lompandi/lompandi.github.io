@@ -1,0 +1,332 @@
+ffff8384`0387d690  00000000`00000000 00000000`00000000 <--- buffer start
+ffff8384`0387d6a0  00000000`00000000 00000000`00000000
+ffff8384`0387d6b0  00000000`00000000 00000000`00000000
+ffff8384`0387d6c0  00000000`00000000 00000000`00000000
+ffff8384`0387d6d0  00000000`00000000 00000000`00000000
+ffff8384`0387d6e0  00000000`00000000 00000000`00000000
+ffff8384`0387d6f0  00000000`00000000 00000000`00000000
+ffff8384`0387d700  00000000`00000000 00000000`00000000
+ffff8384`0387d710  00000000`00000000 00000000`00000000
+ffff8384`0387d720  00000000`00000000 00000000`00000000
+ffff8384`0387d730  00000000`00000000 00000000`00000000
+ffff8384`0387d740  00000000`00000000 00000000`00000000
+ffff8384`0387d750  00000000`00000000 00000000`00000000
+ffff8384`0387d760  00000000`00000000 00000000`00000000
+ffff8384`0387d770  00000000`00000000 00000000`00000000
+ffff8384`0387d780  00000000`00000000 00000000`00000000
+ffff8384`0387d790  ffff3c10`22ea0e30 fffff804`88305101
+ffff8384`0387d7a0  00000000`00000000 00000000`00000001
+ffff8384`0387d7b0  00000000`c00000bb fffff804`8830518a <--- return address 7b8
+
+ffffeb0f`128537e8  fffff801`18c4a295 00000000`00000002
+ffffeb0f`128537f8  00000000`00000000 ffffeb0f`12853b80
+ffffeb0f`12853808  00000000`00000001 00000000`00000000
+ffffeb0f`12853818  00000000`00000001 ffffb90a`490a93e0 <------second return address
+ffffeb0f`12853828  fffff801`1903260c 00000000`00000001
+ffffeb0f`12853838  00000000`9c40240b ffffb90a`51323200
+ffffeb0f`12853848  0000006a`00000000 00000000`00000000
+ffffeb0f`12853858  00000000`00000001 ffffb90a`51323200
+
+
+
+
+fffff98b`cb1b87b8  fffff804`9df8518a ffffe489`4da492c0
+fffff98b`cb1b87c8  ffffe489`4da492c0 ffffe489`4da49390
+fffff98b`cb1b87d8  ffffe489`4fa72e10 ffffe489`4da492c0
+fffff98b`cb1b87e8  fffff804`8044a295 00000000`00000002
+fffff98b`cb1b87f8  00000000`00000000 fffff98b`cb1b8b80
+fffff98b`cb1b8808  00000000`00000008 00000000`00000000
+fffff98b`cb1b8818  00000000`00000001 ffffe489`4da492c0
+fffff98b`cb1b8828  fffff804`8083260c 00000000`00000001
+fffff98b`cb1b8838  00000000`9c40240b ffffe489`583a6c90
+fffff98b`cb1b8848  0000004d`00000000 00000000`00000000
+fffff98b`cb1b8858  00000000`00000001 ffffe489`583a6c90
+fffff98b`cb1b8868  00000000`00000000 00000000`00000000
+fffff98b`cb1b8878  00000000`00000008 ffffe489`583a6c90
+fffff98b`cb1b8888  ffff4bd2`922cf663 00000000`00000008
+fffff98b`cb1b8898  00000000`00000000 ffffe489`4da493d8
+fffff98b`cb1b88a8  00000000`00000008 ffffe489`583a6c90
+fffff98b`cb1b88b8  ffffe489`4da492c0 fffff98b`cb1b8b80
+fffff98b`cb1b88c8  fffff804`8083225a ffffe489`00000000
+fffff98b`cb1b88d8  fffff98b`cb1b8b80 00000000`00010000
+fffff98b`cb1b88e8  00000000`9c40240b fffff98b`cb1b8901
+fffff98b`cb1b88f8  00000000`00000001 00000000`00000002
+fffff98b`cb1b8908  0000004d`962fd920 0000004d`962fd980
+fffff98b`cb1b8918  00000000`00000002 00000000`00000101
+fffff98b`cb1b8928  ffffe489`583a6c90 00000000`00000003
+
+ffffb98d`1de927b8 fffff800`3326518a BreathofShadow+0x5103
+ffffb98d`1de927c0 fffff800`1524a295 BreathofShadow+0x518a
+ffffb98d`1de927f0 fffff800`1563260c nt!IofCallDriver+0x55
+ffffb98d`1de92830 fffff800`1563225a nt!IopSynchronousServiceTail+0x34c
+ffffb98d`1de928d0 fffff800`15631536 nt!IopXxxControlFile+0xd0a
+ffffb98d`1de92a20 fffff800`15412905 nt!NtDeviceIoControlFile+0x56
+ffffb98d`1de92a90 00007ff9`c682d5d4 nt!KiSystemServiceCopyEnd+0x25
+00000060`85b8f308 00007ff9`c3f5287b 0x00007ff9`c682d5d4
+00000060`85b8f310 00007ff6`dfee30d8 0x00007ff9`c3f5287b
+00000060`85b8f318 00000000`00000024 0x00007ff6`dfee30d8
+00000060`85b8f320 00007ff6`dfed836c 0x24
+00000060`85b8f328 00000060`85b8f398 0x00007ff6`dfed836c
+00000060`85b8f330 00000060`85b8f360 0x00000060`85b8f398
+00000060`85b8f338 00007ff6`9c40240b 0x00000060`85b8f360
+00000060`85b8f340 00000060`85b8f410 0x00007ff6`9c40240b
+00000060`85b8f348 00007ff6`00000008 0x00000060`85b8f410
+00000060`85b8f350 00000000`00000000 0x00007ff6`00000008
+
+kd> dq fffffb88cb9f0690 L40
+fffffb88`cb9f0690  00000000`00000000 00000000`00000000
+fffffb88`cb9f06a0  00000000`00000000 00000000`00000000
+fffffb88`cb9f06b0  00000000`00000000 00000000`00000000
+fffffb88`cb9f06c0  00000000`00000000 00000000`00000000
+fffffb88`cb9f06d0  00000000`00000000 00000000`00000000
+fffffb88`cb9f06e0  00000000`00000000 00000000`00000000
+fffffb88`cb9f06f0  00000000`00000000 00000000`00000000
+fffffb88`cb9f0700  00000000`00000000 00000000`00000000
+fffffb88`cb9f0710  00000000`00000000 00000000`00000000
+fffffb88`cb9f0720  00000000`00000000 00000000`00000000
+fffffb88`cb9f0730  00000000`00000000 00000000`00000000
+fffffb88`cb9f0740  00000000`00000000 00000000`00000000
+fffffb88`cb9f0750  00000000`00000000 00000000`00000000
+fffffb88`cb9f0760  00000000`00000000 00000000`00000000
+fffffb88`cb9f0770  00000000`00000000 00000000`00000000
+fffffb88`cb9f0780  00000000`00000000 00000000`00000000
+fffffb88`cb9f0790  ffffc4f3`04d67a70 fffff804`3281a301 <--offset to base: -0xA1A301
+fffffb88`cb9f07a0  00000000`00000000 00000000`00000001
+fffffb88`cb9f07b0  00000000`c00000bb fffff804`492f518a
+fffffb88`cb9f07c0  ffffae8a`f3af5d80 ffffae8a`f3af5d80
+fffffb88`cb9f07d0  ffffae8a`f3af5e50 ffffae8a`f8389da0
+fffffb88`cb9f07e0  ffffae8a`f3af5d80 fffff804`32035cf5
+fffffb88`cb9f07f0  00000000`00000002 00000000`00000000
+fffffb88`cb9f0800  fffffb88`cb9f0b80 00000000`00000001
+fffffb88`cb9f0810  00000000`00000000 00000000`00000001
+fffffb88`cb9f0820  ffffae8a`f3af5d80 fffff804`324452ac
+fffffb88`cb9f0830  00000000`00000001 00000000`9c40240b
+fffffb88`cb9f0840  ffffae8a`fa8857b0 00000092`00000000
+fffffb88`cb9f0850  00000000`00000000 00000000`00000001
+fffffb88`cb9f0860  ffffae8a`fa8857b0 00000000`00000000
+fffffb88`cb9f0870  00000000`00000000 00000000`000001e0
+fffffb88`cb9f0880  ffffae8a`fa8857b0 ffff97d0`2e94d910
+kd> k
+Child-SP          RetAddr           Call Site
+fffffb88`cb9f0660 fffff804`492f518a BreathofShadow+0x506f
+fffffb88`cb9f07c0 fffff804`32035cf5 BreathofShadow+0x518a
+fffffb88`cb9f07f0 fffff804`324452ac nt!IofCallDriver+0x55
+fffffb88`cb9f0830 fffff804`32444f03 nt!IopSynchronousServiceTail+0x34c
+fffffb88`cb9f08d0 fffff804`324441d6 nt!IopXxxControlFile+0xd13
+fffffb88`cb9f0a20 fffff804`32211238 nt!NtDeviceIoControlFile+0x56
+fffffb88`cb9f0a90 00007ffe`42ced0c4 nt!KiSystemServiceCopyEnd+0x28
+00000092`8df0fb48 00007ffe`4094591b 0x00007ffe`42ced0c4
+00000092`8df0fb50 00000002`0000000c 0x00007ffe`4094591b
+00000092`8df0fb58 00000092`8df0fb70 0x00000002`0000000c
+00000092`8df0fb60 000048fe`16ea6781 0x00000092`8df0fb70
+00000092`8df0fb68 00000000`00000000 0x000048fe`16ea6781
+
+fffff804`31e00000 fffff804`32e46000   nt
+fffff804`31e00000 fffff804`32e46000   nt
+
+
+kd> dt nt!_KTHREAD
+   +0x000 Header           : _DISPATCHER_HEADER
+   +0x018 SListFaultAddress : Ptr64 Void
+   +0x020 QuantumTarget    : Uint8B
+   +0x028 InitialStack     : Ptr64 Void
+   +0x030 StackLimit       : Ptr64 Void
+   +0x038 StackBase        : Ptr64 Void
+   +0x040 ThreadLock       : Uint8B
+   +0x048 CycleTime        : Uint8B
+   +0x050 CurrentRunTime   : Uint4B
+   +0x054 ExpectedRunTime  : Uint4B
+   +0x058 KernelStack      : Ptr64 Void
+   +0x060 StateSaveArea    : Ptr64 _XSAVE_FORMAT
+   +0x068 SchedulingGroup  : Ptr64 _KSCHEDULING_GROUP
+   +0x070 WaitRegister     : _KWAIT_STATUS_REGISTER
+   +0x071 Running          : UChar
+   +0x072 Alerted          : [2] UChar
+   +0x074 AutoBoostActive  : Pos 0, 1 Bit
+   +0x074 ReadyTransition  : Pos 1, 1 Bit
+   +0x074 WaitNext         : Pos 2, 1 Bit
+   +0x074 SystemAffinityActive : Pos 3, 1 Bit
+   +0x074 Alertable        : Pos 4, 1 Bit
+   +0x074 UserStackWalkActive : Pos 5, 1 Bit
+   +0x074 ApcInterruptRequest : Pos 6, 1 Bit
+   +0x074 QuantumEndMigrate : Pos 7, 1 Bit
+   +0x074 UmsDirectedSwitchEnable : Pos 8, 1 Bit
+   +0x074 TimerActive      : Pos 9, 1 Bit
+   +0x074 SystemThread     : Pos 10, 1 Bit
+   +0x074 ProcessDetachActive : Pos 11, 1 Bit
+   +0x074 CalloutActive    : Pos 12, 1 Bit
+   +0x074 ScbReadyQueue    : Pos 13, 1 Bit
+   +0x074 ApcQueueable     : Pos 14, 1 Bit
+   +0x074 ReservedStackInUse : Pos 15, 1 Bit
+   +0x074 UmsPerformingSyscall : Pos 16, 1 Bit
+   +0x074 TimerSuspended   : Pos 17, 1 Bit
+   +0x074 SuspendedWaitMode : Pos 18, 1 Bit
+   +0x074 SuspendSchedulerApcWait : Pos 19, 1 Bit
+   +0x074 CetUserShadowStack : Pos 20, 1 Bit
+   +0x074 BypassProcessFreeze : Pos 21, 1 Bit
+   +0x074 Reserved         : Pos 22, 10 Bits
+   +0x074 MiscFlags        : Int4B
+   +0x078 ThreadFlagsSpare : Pos 0, 2 Bits
+   +0x078 AutoAlignment    : Pos 2, 1 Bit
+   +0x078 DisableBoost     : Pos 3, 1 Bit
+   +0x078 AlertedByThreadId : Pos 4, 1 Bit
+   +0x078 QuantumDonation  : Pos 5, 1 Bit
+   +0x078 EnableStackSwap  : Pos 6, 1 Bit
+   +0x078 GuiThread        : Pos 7, 1 Bit
+   +0x078 DisableQuantum   : Pos 8, 1 Bit
+   +0x078 ChargeOnlySchedulingGroup : Pos 9, 1 Bit
+   +0x078 DeferPreemption  : Pos 10, 1 Bit
+   +0x078 QueueDeferPreemption : Pos 11, 1 Bit
+   +0x078 ForceDeferSchedule : Pos 12, 1 Bit
+   +0x078 SharedReadyQueueAffinity : Pos 13, 1 Bit
+   +0x078 FreezeCount      : Pos 14, 1 Bit
+   +0x078 TerminationApcRequest : Pos 15, 1 Bit
+   +0x078 AutoBoostEntriesExhausted : Pos 16, 1 Bit
+   +0x078 KernelStackResident : Pos 17, 1 Bit
+   +0x078 TerminateRequestReason : Pos 18, 2 Bits
+   +0x078 ProcessStackCountDecremented : Pos 20, 1 Bit
+   +0x078 RestrictedGuiThread : Pos 21, 1 Bit
+   +0x078 VpBackingThread  : Pos 22, 1 Bit
+   +0x078 ThreadFlagsSpare2 : Pos 23, 1 Bit
+   +0x078 EtwStackTraceApcInserted : Pos 24, 8 Bits
+   +0x078 ThreadFlags      : Int4B
+   +0x07c Tag              : UChar
+   +0x07d SystemHeteroCpuPolicy : UChar
+   +0x07e UserHeteroCpuPolicy : Pos 0, 7 Bits
+   +0x07e ExplicitSystemHeteroCpuPolicy : Pos 7, 1 Bit
+   +0x07f RunningNonRetpolineCode : Pos 0, 1 Bit
+   +0x07f SpecCtrlSpare    : Pos 1, 7 Bits
+   +0x07f SpecCtrl         : UChar
+   +0x080 SystemCallNumber : Uint4B
+   +0x084 ReadyTime        : Uint4B
+   +0x088 FirstArgument    : Ptr64 Void
+   +0x090 TrapFrame        : Ptr64 _KTRAP_FRAME
+   +0x098 ApcState         : _KAPC_STATE
+   +0x098 ApcStateFill     : [43] UChar
+   +0x0c3 Priority         : Char
+   +0x0c4 UserIdealProcessor : Uint4B
+   +0x0c8 WaitStatus       : Int8B
+   +0x0d0 WaitBlockList    : Ptr64 _KWAIT_BLOCK
+   +0x0d8 WaitListEntry    : _LIST_ENTRY
+   +0x0d8 SwapListEntry    : _SINGLE_LIST_ENTRY
+   +0x0e8 Queue            : Ptr64 _DISPATCHER_HEADER
+   +0x0f0 Teb              : Ptr64 Void
+   +0x0f8 RelativeTimerBias : Uint8B
+   +0x100 Timer            : _KTIMER
+   +0x140 WaitBlock        : [4] _KWAIT_BLOCK
+   +0x140 WaitBlockFill4   : [20] UChar
+   +0x154 ContextSwitches  : Uint4B
+   +0x140 WaitBlockFill5   : [68] UChar
+   +0x184 State            : UChar
+   +0x185 Spare13          : Char
+   +0x186 WaitIrql         : UChar
+   +0x187 WaitMode         : Char
+   +0x140 WaitBlockFill6   : [116] UChar
+   +0x1b4 WaitTime         : Uint4B
+   +0x140 WaitBlockFill7   : [164] UChar
+   +0x1e4 KernelApcDisable : Int2B
+   +0x1e6 SpecialApcDisable : Int2B
+   +0x1e4 CombinedApcDisable : Uint4B
+   +0x140 WaitBlockFill8   : [40] UChar
+   +0x168 ThreadCounters   : Ptr64 _KTHREAD_COUNTERS
+   +0x140 WaitBlockFill9   : [88] UChar
+   +0x198 XStateSave       : Ptr64 _XSTATE_SAVE
+   +0x140 WaitBlockFill10  : [136] UChar
+   +0x1c8 Win32Thread      : Ptr64 Void
+   +0x140 WaitBlockFill11  : [176] UChar
+   +0x1f0 Ucb              : Ptr64 _UMS_CONTROL_BLOCK
+   +0x1f8 Uch              : Ptr64 _KUMS_CONTEXT_HEADER
+   +0x200 ThreadFlags2     : Int4B
+   +0x200 BamQosLevel      : Pos 0, 8 Bits
+   +0x200 ThreadFlags2Reserved : Pos 8, 24 Bits
+   +0x204 Spare21          : Uint4B
+   +0x208 QueueListEntry   : _LIST_ENTRY
+   +0x218 NextProcessor    : Uint4B
+   +0x218 NextProcessorNumber : Pos 0, 31 Bits
+   +0x218 SharedReadyQueue : Pos 31, 1 Bit
+   +0x21c QueuePriority    : Int4B
+   +0x220 Process          : Ptr64 _KPROCESS
+   +0x228 UserAffinity     : _GROUP_AFFINITY
+   +0x228 UserAffinityFill : [10] UChar
+   +0x232 PreviousMode     : Char
+   +0x233 BasePriority     : Char
+   +0x234 PriorityDecrement : Char
+   +0x234 ForegroundBoost  : Pos 0, 4 Bits
+   +0x234 UnusualBoost     : Pos 4, 4 Bits
+   +0x235 Preempted        : UChar
+   +0x236 AdjustReason     : UChar
+   +0x237 AdjustIncrement  : Char
+   +0x238 AffinityVersion  : Uint8B
+   +0x240 Affinity         : _GROUP_AFFINITY
+   +0x240 AffinityFill     : [10] UChar
+   +0x24a ApcStateIndex    : UChar
+   +0x24b WaitBlockCount   : UChar
+   +0x24c IdealProcessor   : Uint4B
+   +0x250 NpxState         : Uint8B
+   +0x258 SavedApcState    : _KAPC_STATE
+   +0x258 SavedApcStateFill : [43] UChar
+   +0x283 WaitReason       : UChar
+   +0x284 SuspendCount     : Char
+   +0x285 Saturation       : Char
+   +0x286 SListFaultCount  : Uint2B
+   +0x288 SchedulerApc     : _KAPC
+   +0x288 SchedulerApcFill1 : [3] UChar
+   +0x28b QuantumReset     : UChar
+   +0x288 SchedulerApcFill2 : [4] UChar
+   +0x28c KernelTime       : Uint4B
+   +0x288 SchedulerApcFill3 : [64] UChar
+   +0x2c8 WaitPrcb         : Ptr64 _KPRCB
+   +0x288 SchedulerApcFill4 : [72] UChar
+   +0x2d0 LegoData         : Ptr64 Void
+   +0x288 SchedulerApcFill5 : [83] UChar
+   +0x2db CallbackNestingLevel : UChar
+   +0x2dc UserTime         : Uint4B
+   +0x2e0 SuspendEvent     : _KEVENT
+   +0x2f8 ThreadListEntry  : _LIST_ENTRY
+   +0x308 MutantListHead   : _LIST_ENTRY
+   +0x318 AbEntrySummary   : UChar
+   +0x319 AbWaitEntryCount : UChar
+   +0x31a AbAllocationRegionCount : UChar
+   +0x31b SystemPriority   : Char
+   +0x31c SecureThreadCookie : Uint4B
+   +0x320 LockEntries      : Ptr64 _KLOCK_ENTRY
+   +0x328 PropagateBoostsEntry : _SINGLE_LIST_ENTRY
+   +0x330 IoSelfBoostsEntry : _SINGLE_LIST_ENTRY
+   +0x338 PriorityFloorCounts : [16] UChar
+   +0x348 PriorityFloorCountsReserved : [16] UChar
+   +0x358 PriorityFloorSummary : Uint4B
+   +0x35c AbCompletedIoBoostCount : Int4B
+   +0x360 AbCompletedIoQoSBoostCount : Int4B
+   +0x364 KeReferenceCount : Int2B
+   +0x366 AbOrphanedEntrySummary : UChar
+   +0x367 AbOwnedEntryCount : UChar
+   +0x368 ForegroundLossTime : Uint4B
+   +0x370 GlobalForegroundListEntry : _LIST_ENTRY
+   +0x370 ForegroundDpcStackListEntry : _SINGLE_LIST_ENTRY
+   +0x378 InGlobalForegroundList : Uint8B
+   +0x380 ReadOperationCount : Int8B
+   +0x388 WriteOperationCount : Int8B
+   +0x390 OtherOperationCount : Int8B
+   +0x398 ReadTransferCount : Int8B
+   +0x3a0 WriteTransferCount : Int8B
+   +0x3a8 OtherTransferCount : Int8B
+   +0x3b0 QueuedScb        : Ptr64 _KSCB
+   +0x3b8 ThreadTimerDelay : Uint4B
+   +0x3bc ThreadFlags3     : Int4B
+   +0x3bc ThreadFlags3Reserved : Pos 0, 8 Bits
+   +0x3bc PpmPolicy        : Pos 8, 2 Bits
+   +0x3bc ThreadFlags3Reserved2 : Pos 10, 22 Bits
+   +0x3c0 TracingPrivate   : [1] Uint8B
+   +0x3c8 SchedulerAssist  : Ptr64 Void
+   +0x3d0 AbWaitObject     : Ptr64 Void
+   +0x3d8 ReservedPreviousReadyTimeValue : Uint4B
+   +0x3e0 KernelWaitTime   : Uint8B
+   +0x3e8 UserWaitTime     : Uint8B
+   +0x3f0 GlobalUpdateVpThreadPriorityListEntry : _LIST_ENTRY
+   +0x3f0 UpdateVpThreadPriorityDpcStackListEntry : _SINGLE_LIST_ENTRY
+   +0x3f8 InGlobalUpdateVpThreadPriorityList : Uint8B
+   +0x400 SchedulerAssistPriorityFloor : Int4B
+   +0x404 Spare28          : Uint4B
+   +0x408 ResourceIndex    : UChar
+   +0x409 Spare31          : [3] UChar
+   +0x410 EndPadding       : [4] Uint8B

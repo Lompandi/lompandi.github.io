@@ -28,7 +28,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            fetch('post1.md') 
+            fetch('../post3/post3.md') 
                 .then(response => response.text()) 
                 .then(markdownContent => {
                     var htmlContent = marked.parse(markdownContent);
