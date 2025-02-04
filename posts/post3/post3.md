@@ -110,6 +110,21 @@ Intel 在 1982 年推出的 80286 處理器中引入**保護模式（Protected M
 
 ![ref3](https://lompandi.github.io/posts/post3/imgs/Addressing.png)
 
+```c++
+union VIRTUAL_ADDRESS {
+    struct {
+        uint64_t Offset : 12;
+        uint64_t PtIndex : 9;
+        uint64_t PdIndex : 9;
+        uint64_t PdPtIndex : 9;
+        uint64_t Pml4Index : 9;
+        uint64_t Reserved : 16;
+    } u;
+    uint64_t AsUINT64;
+    constexpr VIRTUAL_ADDRESS(const uint64_t Value) : AsUINT64(Value) {}
+};
+```
+
 其中除保留欄位外，剩下的欄位都是用來轉換其到實體位址的，下面慢慢說。
 
 ## - 分頁表:
@@ -194,31 +209,35 @@ union MMPTE_HARDWARE {
 
 控制暫存器 CR3 負責指定4級分頁表(PLM4)。
 
-首先，將 CR3 轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber```  乘以**分頁大小(通常為4096)**，得到**PML4 的基底實體位址**。
+* ### 步驟一
+將 CR3 轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber```  乘以**分頁大小(通常為4096)**，得到**PML4 的基底實體位址**。
 
 再將要轉換的虛擬位址中的 PML4 Index 乘以 8，加上 PML4 的基底實體位址，得到 **PML4E 的實體位址**。
 
-
+* ### 步驟二
 從 PLM4E 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PDPT 的基底實體位址**。
 
 將要轉換的虛擬位址中的 PDPT Index 乘以 8，加上 PDPT 的基底實體位址，得到 **PDPTE 的實體位址**。
 
-
+* ### 步驟三
 從 PDPTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PD 的基底實體位址**。
 
+* ### 步驟四(1) (PDPTE 的 PS 旗標為 1)，完成計算
 這時如果 PDPTE 的 PS 旗標（位元 7）為 1，無須分頁表。直接將 PD 的基底實體位址與虛擬位址中前 30 個 位元相加，**即可直接對應所求的實體記憶體位址**。
 
-
+* ### 步驟四(2) (PDPTE 的 PS 旗標為 0)
 如果 PDPTE 的 PS 旗標為 0 ，那麼就像前兩次所做的那樣，將虛擬位址中的 PD Index 乘以 8 個然後加上 **PD 基底實體位址**，得到 **PDE 的實體位址**。
 
-
+* ### 步驟五
 從 PDE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 得到**PT 的基底實體位址**。
 
+* ### 步驟六(1) (PDE 的 PS 旗標為 1)，完成計算
 如果 PDE 的 PS 旗標為 1，直接將虛擬位址中前 28 個位元和 **PT 基底實體位址** 相加，**即可直接對應所求的實體記憶體位址**。
 
-
+* ### 步驟六(2) (PDE 的 PS 旗標為 0)
 反之，如果 PDE 的 PS 旗標為 0，則將虛擬位址中的 PT Index 乘以 8 個然後加上 **PT 基底實體位址**，得到  **PTE 的實體位址**。之後，
 
+* ### 步驟七，完成計算
 從 PTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 加上虛擬位址的 Offset，**即可得到所求的實體記憶體位址**。
 
 有分支計算的部份可能有些眼花撩亂，幫大家整理一下:
@@ -237,3 +256,5 @@ pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V 
 ```
 
 其中每條虛線對應一個特定的控制位元。PXE 部分實際上是指該線性位址的 PML4 表，而 PPE 則表示分頁 PDP 表。(為甚麼要亂給人家改名字??😭)
+
+
