@@ -198,29 +198,33 @@ union MMPTE_HARDWARE {
 
 再將要轉換的虛擬位址中的 PML4 Index 乘以 8，加上 PML4 的基底實體位址，得到 **PML4E 的實體位址**。
 
+
 從 PLM4E 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PDPT 的基底實體位址**。
 
 將要轉換的虛擬位址中的 PDPT Index 乘以 8，加上 PDPT 的基底實體位址，得到 **PDPTE 的實體位址**。
+
 
 從 PDPTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PD 的基底實體位址**。
 
 這時如果 PDPTE 的 PS 旗標（位元 7）為 1，無須分頁表。直接將 PD 的基底實體位址與虛擬位址中前 30 個 位元相加，**即可直接對應所求的實體記憶體位址**。
 
-如果 PDPTE 的 PS 旗標為 0 ，那麼就像前兩次所做的那樣，將虛擬位址中的 PD Index 乘以 8 個然後加上 1024 與 **PD 基底實體位址**的 ```PageFrameNumber```相乘的結果，得到 **PDE 的實體位址**。
 
-從 PDE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 得到**PT 的基底實體位址**。如果 PDE 的 PS 旗標為 1，直接將虛擬位址中前 28 個位元和 **PT 基底實體位址** 相加，**即可直接對應所求的實體記憶體位址**。
+如果 PDPTE 的 PS 旗標為 0 ，那麼就像前兩次所做的那樣，將虛擬位址中的 PD Index 乘以 8 個然後加上 **PD 基底實體位址**，得到 **PDE 的實體位址**。
 
-反之，如果 PDE 的 PS 旗標為 0，則將虛擬位址中的 PT Index 乘以 8 個然後加上 1024 與 **PD 基底實體位址**的 ```PageFrameNumber```相乘的結果，得到  **PTE 的實體位址**。
-之後，將 **PTE 的實體位址** 乘以 4096 加上虛擬位址的 Offset，**即可得到所求的實體記憶體位址**
+
+從 PDE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 得到**PT 的基底實體位址**。
+
+如果 PDE 的 PS 旗標為 1，直接將虛擬位址中前 28 個位元和 **PT 基底實體位址** 相加，**即可直接對應所求的實體記憶體位址**。
+
+
+反之，如果 PDE 的 PS 旗標為 0，則將虛擬位址中的 PT Index 乘以 8 個然後加上 **PT 基底實體位址**，得到  **PTE 的實體位址**。之後，
+
+從 PTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 加上虛擬位址的 Offset，**即可得到所求的實體記憶體位址**。
 
 有分支計算的部份可能有些眼花撩亂，幫大家整理一下:
 
-```math
-\text{If } PDPTE.PS = 1: \quad \text{Physical Address} = \text{PD Base} + \text{Virtual Address}[0:29]
-```
-```math
-\text{If } PDE.PS = 1: \quad \text{Physical Address} = \text{PT Base} + \text{Virtual Address}[0:27]
-```
+#### 1. *if* PDPTE.PS is *1* -> *Physical Address* = *PD Base* + *Virtual Address*[0:29]
+#### 2. *if* PDE.PS is *1* ->   *Physical Address* = *PT Vase* + *Virtual Address*[0:27]
 
 幸運的是，我們不必手動計算每個分頁結構表，因為 kd 中的!pte指令可以直接幫我們計算。
 
