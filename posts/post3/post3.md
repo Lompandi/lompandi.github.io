@@ -96,19 +96,6 @@
 
 試圖讀去或寫入位於這一分區的記憶體位址，就會引發**存取違規**，導致系統強制結束該程式。
 
-## II.3 虛擬位址到實體位址的轉換 (4KB 分頁)
-
-![ref2](https://lompandi.github.io/posts/post3/imgs/x64-paging.png)
-
-### 說明:
-
-|名詞 |意思|
-|-----|----|
-|PML4 |**P**age **M**ap **L**evel **4**，四級分頁映射表|
-|PDPT| **P**age **D**irectory **P**ointer **T**able，分頁目錄表|
-|PD  | **P**age **D**irectory，分頁表|
-|PS  |  **P**age **S**ize bit, 分頁旗標，若為1，其所對應的分頁為**超大分頁 (Huge Page, 1GB)**，反之則為**大分頁 (Large Page, 4MB)**，其**不被 x86-64 的長模式所使用 (全為大分頁)**|
-
 ## - 虛擬位址(線性位址)
 
 ### 歷史
@@ -125,32 +112,49 @@ Intel 在 1982 年推出的 80286 處理器中引入**保護模式（Protected M
 
 其中除保留欄位外，剩下的欄位都是用來轉換其到實體位址的，下面慢慢說。
 
-控制暫存器 CR3 指向4級分頁表(PLM4 Table)的基底位址 的**實體位址**，
+## - 分頁表:
 
-PLM4的索引值 x8(每個PLM4E是8個位元組) 再加上 CR3 
+### 說明:
 
-的基底位址可得到 PLM4 目錄項的位址。因為PLM4表包含了512個PLM4目錄項(PLM4E)，所以這代表4級分頁表可以容納 512GB 的實體位址，
+|名詞 |意思|
+|-----|----|
+|PML4 |**P**age **M**ap **L**evel **4**，四級分頁映射表|
+|PDPT| **P**age **D**irectory **P**ointer **T**able，分頁目錄指標表|
+|PD  | **P**age **D**irectory，分頁目錄表|
+|PT  | **P**age **T**able，分頁表|
 
-而每項**PLM4E的 12-51 位元就是 PDPT 的實體位址**，類似於找尋PLM4E的方法，我們首先從線性位址取的PDPTE的索引，然後乘以 8 個位元組，再加上PDPT的實體。這將映射最多 1GB 的實體記憶體。
+### 分頁表入口 (Page Table Entry, PTE)
+尾端的 "E"(如PML4**E**、PT**E**) 代表 "Entry"，即分頁表的入口，每個入口大小為8個位元。
 
-如果 PDPTE 的 PS 旗標（位元 7）為 1 或在**x86-64的長模式下** ，PDE就會直接指向大分頁，從無須分頁表，這種情況下直接將線性位址中的 30-51 位元與 PDPTE 中的 0-29 位元組合起來，以直接對應實體記憶體中的大分頁 (2MB)。
+ PML4 表包含了 512 個 PML4E，所以這代表4級分頁表可以容納 512GB 的實體位址。
 
-如果 PDPTE 的 PS 旗標為 1 ，那麼就像前兩次所做的那樣，將 PDE 索引乘以 8 個位元組然後加上上個步驟獲得的 PDPTE 的 12-51 位元。
-
-幸運的是，我們不必手動計算每個分頁結構條目，因為 kd 中的!pte指令可以方便地為我們處理這個問題。
-
+Windows 在 ```MMPTE_HARDWARE```  中定義了分頁表入口的結構:
+```c++
+union MMPTE_HARDWARE {
+    struct {
+        uint64_t Present : 1;               //P
+        uint64_t Write : 1;                 //R/W
+        uint64_t UserAccessible : 1;        //U/S
+        uint64_t WriteThrough : 1;          //PWT
+        uint64_t CacheDisable : 1;          //PCD
+        uint64_t Accessed : 1;              //A
+        uint64_t Dirty : 1;                 //D
+        uint64_t LargePage : 1;             //PS
+        uint64_t Available : 4;             //G
+        uint64_t PageFrameNumber : 36;
+        uint64_t ReservedForHardware : 4;   
+        uint64_t ReservedForSoftware : 11;
+        uint64_t NoExecute : 1;             //XD
+    } u;
+    uint64_t AsUINT64;
+};
 ```
-kd> !pte fffff804`72400000
-                                           VA fffff80472400000
-PXE at FFFFDAED76BB5F80    PPE at FFFFDAED76BF0088    PDE at FFFFDAED7E011C90    PTE at FFFFDAFC02392000
-contains 0000000003F09063  contains 0000000003F0A063  contains 8A000000020001A1  contains 0000000000000000
-pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V  LARGE PAGE pfn 2000
-```
 
-其中每條虛線對應一個特定的控制位元。PXE 部分實際上是指該線性位址的 PML4 表，而 PPE 則表示分頁 PDP 表。(為甚麼要亂給人家改名字??😭)
+(P.S. **其實PML4、PDPT、PD、PT的入口都是這種結構**，只是名稱容易混淆)
 
-硬體層的控制位元如下:
+分頁表入口結構包含硬體控制位元，可以控制分頁的屬性。
 
+一些常用的硬體控制位元如下:
 #### 1. 存在（P）:
 
 決定線性位址在實體記憶體中的位置。如果沒有實體位址，則會發生分頁錯誤，且 MMU 將嘗試將位址映射到 RAM 中。
@@ -164,7 +168,7 @@ pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V 
 
 控制分頁的快取模式以及使用[直寫](https://en.wikipedia.org/wiki/Cache_\(computing\)#WRITE-THROUGH)或回寫快取。如果設定了此位，則使用直寫快取。
 
-#### 5. 分頁快取停用 ( PCD ) 位元: 
+#### 5. 分頁快取停用 ( PCD ) : 
 
 顧名思義， 用於啟用或停用分頁快取。
 
@@ -172,21 +176,60 @@ pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V 
 
 指示該分頁已被寫入；通常髒分頁必須先重設後才能被另一個程序使用。
 
-#### 8. [分頁大小 ( PS )](#說明:)
+#### 7. **分頁大小 ( PS )**:
 
-#### 9. 全域（G）:
+若為1，其所對應的分頁為**大分頁 (Large Page, 4MB)**，反之則為**超大分頁 (Huge Page, 1GB)**。
+
+#### 8. 全域（G）:
 
 用於決定當 CR3 清除或變更時 TLB 快取刷新 的位置。只有當 CR4 暫存器中的分頁全域啟用 (PGE) 位元為 1 時，此控制位元才適用。其允許多個位址空間共享相同的分頁。
 
-#### 10. 分頁屬性表 ( PAT ):
-
-與 PCD 和 PWT 位元一起使用來決定快取類型。 PAT 用於建立每個分頁快取行為。
-
-#### 11. 執行停用（XD，又稱NX）:
+#### 9. 執行停用（XD，又稱NX）:
 
 僅在處理器以**長模式**運作時適用，但它決定了指令可以在指定分頁內的任何位置執行。僅當 EFER 暫存器中的 NXE 位元為 1 時時才支援此功能。
 
-#### 12. 保護金鑰（PK）:
+## II.3 虛擬位址到實體位址的轉換
 
-長度為4位，用於設定一組分頁的存取權限。核心模式和使用者模式有一組單獨的存取權限。如果設定了 PKE 位，則 PKRU 暫存器與 PK 會用來評估分頁對於使用者模式的可存取性。如果設定了 PKS 位元，則 PKRS 暫存器與 PK 也會用相似的方法檢查核心模式下的存取權限。此位元**僅當處理器以長模式運作時才適用**。
+![ref2](https://lompandi.github.io/posts/post3/imgs/x64-paging.png)
 
+控制暫存器 CR3 負責指定4級分頁表(PLM4)。
+
+首先，將 CR3 轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber```  乘以**分頁大小(通常為4096)**，得到**PML4 的基底實體位址**。
+
+再將要轉換的虛擬位址中的 PML4 Index 乘以 8，加上 PML4 的基底實體位址，得到 **PML4E 的實體位址**。
+
+從 PLM4E 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PDPT 的基底實體位址**。
+
+將要轉換的虛擬位址中的 PDPT Index 乘以 8，加上 PDPT 的基底實體位址，得到 **PDPTE 的實體位址**。
+
+從 PDPTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PD 的基底實體位址**。
+
+這時如果 PDPTE 的 PS 旗標（位元 7）為 1，無須分頁表。直接將 PD 的基底實體位址與虛擬位址中前 30 個 位元相加，**即可直接對應所求的實體記憶體位址**。
+
+如果 PDPTE 的 PS 旗標為 0 ，那麼就像前兩次所做的那樣，將虛擬位址中的 PD Index 乘以 8 個然後加上 1024 與 **PD 基底實體位址**的 ```PageFrameNumber```相乘的結果，得到 **PDE 的實體位址**。
+
+從 PDE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 得到**PT 的基底實體位址**。如果 PDE 的 PS 旗標為 1，直接將虛擬位址中前 28 個位元和 **PT 基底實體位址** 相加，**即可直接對應所求的實體記憶體位址**。
+
+反之，如果 PDE 的 PS 旗標為 0，則將虛擬位址中的 PT Index 乘以 8 個然後加上 1024 與 **PD 基底實體位址**的 ```PageFrameNumber```相乘的結果，得到  **PTE 的實體位址**。
+之後，將 **PTE 的實體位址** 乘以 4096 加上虛擬位址的 Offset，**即可得到所求的實體記憶體位址**
+
+有分支計算的部份可能有些眼花撩亂，幫大家整理一下:
+
+```math
+\text{If } PDPTE.PS = 1: \quad \text{Physical Address} = \text{PD Base} + \text{Virtual Address}[0:29]
+```
+```math
+\text{If } PDE.PS = 1: \quad \text{Physical Address} = \text{PT Base} + \text{Virtual Address}[0:27]
+```
+
+幸運的是，我們不必手動計算每個分頁結構表，因為 kd 中的!pte指令可以直接幫我們計算。
+
+```
+kd> !pte fffff804`72400000
+                                           VA fffff80472400000
+PXE at FFFFDAED76BB5F80    PPE at FFFFDAED76BF0088    PDE at FFFFDAED7E011C90    PTE at FFFFDAFC02392000
+contains 0000000003F09063  contains 0000000003F0A063  contains 8A000000020001A1  contains 0000000000000000
+pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V  LARGE PAGE pfn 2000
+```
+
+其中每條虛線對應一個特定的控制位元。PXE 部分實際上是指該線性位址的 PML4 表，而 PPE 則表示分頁 PDP 表。(為甚麼要亂給人家改名字??😭)
