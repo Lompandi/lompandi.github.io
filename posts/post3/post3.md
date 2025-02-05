@@ -210,7 +210,7 @@ union MMPTE_HARDWARE {
 控制暫存器 CR3 負責指定4級分頁表(PLM4)。
 
 * ### 步驟一
-將 CR3 轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber```  乘以**分頁大小(通常為4096)**，得到**PML4 的基底實體位址**。
+將 CR3 轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber```  乘以**4096**，得到**PML4 的基底實體位址**。
 
 再將要轉換的虛擬位址中的 PML4 Index 乘以 8，加上 PML4 的基底實體位址，得到 **PML4E 的實體位址**。
 
@@ -248,13 +248,108 @@ union MMPTE_HARDWARE {
 幸運的是，我們不必手動計算每個分頁結構表，因為 kd 中的!pte指令可以直接幫我們計算。
 
 ```
-kd> !pte fffff804`72400000
-                                           VA fffff80472400000
-PXE at FFFFDAED76BB5F80    PPE at FFFFDAED76BF0088    PDE at FFFFDAED7E011C90    PTE at FFFFDAFC02392000
+kd> !pte fffff802`7c000000
+                                           VA fffff8027c000000
+PXE at FFFFBE5F2F97CF80    PPE at FFFFBE5F2F9F0048    PDE at FFFFBE5F3E009F00    PTE at FFFFBE7C013E0000
 contains 0000000003F09063  contains 0000000003F0A063  contains 8A000000020001A1  contains 0000000000000000
 pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V  LARGE PAGE pfn 2000
 ```
 
 其中每條虛線對應一個特定的控制位元。PXE 部分實際上是指該線性位址的 PML4 表，而 PPE 則表示分頁 PDP 表。(為甚麼要亂給人家改名字??😭)
 
+那接下來我們就使用上述方式來手算 ```fffff802`7c000000``` 的 Physical Address。
+
+手先，輸入 ```r cr3``` 取得cr3的值:
+```
+kd> r cr3
+cr3=00000000001ad000
+```
+先將 Virtual Address 轉換，得到分頁表的索引值和偏移值:
+```
+Offset: 0
+PtIndex: 0
+PdIndex: 1e0
+PdPtIndex: 9
+Pml4Index: 1f0
+```
+
+取其 12~48 個位元，即 ```0x0000001ad```，乘以 4096，得到 ```0x00000000001ad000```。加上 ```Pml4Index x 8```，即 ```0x1F0 x 8 = 0xF80```，得 PML4E 的位址在 ```0x00000000`001adf80```。
+
+接下來，使用```!dq 0x00000000`001adf80 L1``` 來取得實體位址 ```0x00000000`001adf80``` 的指標。(q 代表 quadword，在 64 位元架構上是 8 個 byte)
+
+```
+kd> !dq 0x00000000`001adf80 L1
+#  1adf80 00000000`03f09063
+```
+得到 PML4E ```0x00000000`03f09063```。 和 !pte 的 PXE 對應一下，發現我們計算正確。
+
+接下來，取```0x00000000`03f09063```的 12~48 個位元，乘以 4096，得 ```0x00000000`03f09000```。加上 0x48 (即 PdPtIndex x 8)，得到 PDPTE 的位址在 ```0x00000000`03f09048```:
+```
+kd> !dq 0x00000000`03f09048 L1
+# 3f09048 00000000`03f0a063
+```
+得到 PDPTE ```00000000`03f0a063```。 和 !pte 的 PPE 對應一下，發現我們計算正確。
+
+接下來，先將 PDPTE 轉換成```MMPTE_HARDWARE```:
+```
+Present: 1
+Write: 1
+UserAccessible: 0
+WriteThrough: 0
+CacheDisable: 0
+Accessed: 1
+Dirty: 1
+LargePage: 0
+Available: 0
+PageFrameNumber: 3f0a
+NoExecute: 0
+```
+發現其 LargePage 設為 0，故繼續計算，
+取```00000000`03f0a063```的 12~48 個位元，乘以 4096，得 ```0x00000000`03f0a000```。加上 0xF00 (即 PdIndex x 8)，得到 PDE 的位址在 ```0x00000000`03f0af00```:
+
+```
+kd> !dq 0x00000000`03f0af00 L1
+# 3f0af00 8a000000`020001a1
+```
+得到 PDE ```8a000000`020001a1```，將其轉換成```MMPTE_HARDWARE```:
+```
+Present: 1
+Write: 0
+UserAccessible: 0
+WriteThrough: 0
+CacheDisable: 0
+Accessed: 1
+Dirty: 0
+LargePage: 1
+Available: 1
+PageFrameNumber: 2000
+NoExecute: 1
+```
+發現其 LargePage 設為 1，故取```0x8a000000`020001a1```的 12~48 個位元，乘以 4096，得 ```0x02000000```。
+
+並將其加上 Virtual Address 的 1 ~ 28 位元，得轉換後的實體位址 = 0x02000000 + 0 = **0x02000000**。
+
+接著使用```dq```和```!dq```來比較 Virtual Address 和 Physical Address 的資訊，並檢查計算結果:
+```
+kd> dq fffff802`7c000000
+fffff802`7c000000  00000003`00905a4d 0000ffff`00000004
+fffff802`7c000010  00000000`000000b8 00000000`00000040
+fffff802`7c000020  00000000`00000000 00000000`00000000
+fffff802`7c000030  00000000`00000000 00000118`00000000
+fffff802`7c000040  cd09b400`0eba1f0e 685421cd`4c01b821
+fffff802`7c000050  72676f72`70207369 6f6e6e61`63206d61
+fffff802`7c000060  6e757220`65622074 20534f44`206e6920
+fffff802`7c000070  0a0d0d2e`65646f6d 00000000`00000024
+kd> !dq 0x02000000
+# 2000000 00000003`00905a4d 0000ffff`00000004
+# 2000010 00000000`000000b8 00000000`00000040
+# 2000020 00000000`00000000 00000000`00000000
+# 2000030 00000000`00000000 00000118`00000000
+# 2000040 cd09b400`0eba1f0e 685421cd`4c01b821
+# 2000050 72676f72`70207369 6f6e6e61`63206d61
+# 2000060 6e757220`65622074 20534f44`206e6920
+# 2000070 0a0d0d2e`65646f6d 00000000`00000024
+```
+
+可以發現，兩者包含的資訊相同，故我們的轉換計算正確 <span style="font-size: 24px;">😆</span> 。
 
