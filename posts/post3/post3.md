@@ -594,8 +594,7 @@ nt authority/system
     
     ![ref6](https://lompandi.github.io/posts/post3/imgs/ActiveProcessLink.png)
     
-    在這裡 Flink 會指向下一個 EPROCESS 的 ActiveProcessLinks 的 Flink，Blink 則指向上一個 EPROCESS 的 ActiveProcessLinks 的 Flink，
-    由節點切入可以走訪所有程序的 _EPROCESS 結構，我們就可以利用這個串列走訪所有 _EPROCESS 結構。
+    在這裡 Flink 會指向下一個 EPROCESS 的 ActiveProcessLinks 的 Flink，Blink 則指向上一個 EPROCESS 的 ActiveProcessLinks 的 Flink，這代表我們可以利用這個串列走訪所有 _EPROCESS 結構。
     
     而 _EPROCESS 的另外一個欄位 UniqueProcessId (PID) 位址即為 ```Flink 欄位的位址 - 8```，這代表如果我們讀取每個 Flink 的位址 - 8 的值，就可以一邊走一邊比對 PID 來找尋 system 和 cmd.exe 的 _EPROCESS 結構了。
 
