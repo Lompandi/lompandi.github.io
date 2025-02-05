@@ -598,7 +598,6 @@ nt authority/system
     
     而 _EPROCESS 的另外一個欄位 UniqueProcessId (PID) 位址即為 ```Flink 欄位的位址 - 8```，這代表如果我們讀取每個 Flink 的位址 - 8 的值，就可以一邊走一邊比對 PID 來找尋 system 和 cmd.exe 的 _EPROCESS 結構了。
 
-    整理一下流程:
     ![ref7](https://lompandi.github.io/posts/post3/imgs/fetching_eprocess%20final.png)
 
     接下來，我們先著手完成 shellcode 吧!
