@@ -16,8 +16,57 @@
 |tcpip.sys | 實現 TCP/IP 協議棧(Stack)，管理網路通信，處理封包及路由等。|
 |disk.sys|管理硬碟、SSD 等儲存裝置的低層次存取，協助資料的讀取與寫入。|
 
-
 而 Microsoft 也有提供關於 Kernel Driver 的驅動程式套件 [WDK](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/download-the-wdk)
+
+* ## 準備 Kernel Debugger
+
+核心偵錯和一般偵錯不太一樣，所以這裡抽一篇幅來講如何使用虛擬機配置核心偵錯環境。
+
+這裡講量種不同的虛擬機配置，HyperV 和 VMWare。
+
+* ### VMware
+    首先，加設好一台 Windows VM，並以管理員身分執行 CMD。
+
+* #### 啟用偵錯模式 
+    輸入 ```bcdedit```
+    
+    ![ref8](https://lompandi.github.io/posts/post3/imgs/checkset.png)
+    
+    你應該會看到 ```debug           No```，這代表偵錯模式已關閉，我們要打開它。很簡單，輸入:
+    
+    ```bcdedit /debug on``` 即可。
+    ```
+    C:\Windows\System32>bcdedit /debug on
+    The operation completed successfully.
+    ```
+    
+    如果不行的話，去看一下 VM 的安全開機 (Secure Boot) 選項是否開啟，如果是，關掉它。
+    ![ref9](https://lompandi.github.io/posts/post3/imgs/disable-secure.png)
+    
+* #### 設定遠端偵錯選項
+    首先，開啟```VM -> Settings -> Network Adapter```，將網路連線改為 **Bridged**(橋接介面卡)
+    
+    ![ref10](https://lompandi.github.io/posts/post3/imgs/bridge.png)
+
+    接下來重新啟動，並開啟 CMD，輸入```ipconfig``` 以得到 Local IP，確認他的 IP 遮罩是否跟你實體機的一樣。
+
+    在以管理員身分執行的 CMD輸入 ```bcdedit /dbgsettings NET HOSTIP:<電腦的本地IP(LAN)>  PORT:<連線的通訊埠號> KEY:p.a.s.s```
+    ```KEY``` 要設甚麼都可以，開心就好。
+    
+    ```
+    C:\Windows\System32>bcdedit /dbgsettings NET HOSTIP:192.168.1.105 PORT:50000 KEY:p.a.s.s
+    The operation completed successfully.
+    ```
+
+    完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, POST, KEY 會因設定而異)
+    
+    ![ref9](https://lompandi.github.io/posts/post3/imgs/checksettings.png)
+    
+    接下來去 Windows VM 中的設定關掉防火牆，然後就設定完成了。
+    
+* #### 開始用 kd 遠端偵錯
+    
+    
 
 ## II.1 控制暫存器
 如果平時有在碰逆向工程相關方面的話，對於 Rax, Rcx, Rbx, Rdx, Rsi, Rsp, Rdi, Rbp, R8 ~ R15
@@ -559,7 +608,7 @@ nt authority/system
     ![ref5](https://lompandi.github.io/posts/post3/imgs/fetching_eprocess.png)
     
     1. 由讀取 gs:[0x188] (計算過程```Prcb 的偏移量 + CurrentThread 欄位的偏移量 = 0 + 0x180 + 0x8 = 0x188```) 得到 CurrentThread 的指標。
-    2. 由讀取 CurrentThread + 0xb8 ```ApcState 偏移量 + Process 偏移量 = 0x98 + 0x20 = 0xb8``` 得到 Process 指標，並且由其找到 _EPROCESS 中的 Pcb 欄位 (偏移量 0x0)，就可以找到 _EPROCESS 的位址了。    
+    2. 由讀取 CurrentThread + 0xb8 ```ApcState 偏移量 + Process 偏移量 = 0x98 + 0x20 = 0xb8``` 得到 Process 指標，並且由其找到 _EPROCESS 中的 Pcb 欄位 (偏移量 0x0)，也就是 _EPROCESS 的位址了。    
     
     上述流程轉換成組合語言如下:
     
@@ -633,9 +682,11 @@ nt authority/system
     mov [rcx + 0x70], rax       ;modify the token to system's
     ```
     
-    
-    
-    當然，Kernel 做為一個系統中重要的物件，自然不會乖乖站在那邊給你打，Kernel Mode 有一套有別於 User Mode     的保護，最常見的有下列幾項:
+    接下來，幫我們遇到可以掌握 Kernel Driver 的 Execution Flow 的場景，就可以用這支小程式提權了!
+
+## IV Exploiting The Kernel Driver
+
+Kernel 做為一個系統中重要的物件，自然不會乖乖站在那邊給你打，Kernel Mode 有一套有別於 User Mode 的保護，最常見的有下列幾項:
 
 * ### SMAP (Supervisor Mode Access Prevention)
 由控制暫存 Cr4 中的第 20 個位元控制。若開啟，將**禁止核心模式的程序直接存取所有使用者模式分區的資料**。
