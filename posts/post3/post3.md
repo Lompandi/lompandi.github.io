@@ -202,7 +202,7 @@ union MMPTE_HARDWARE {
 
 ## II.3 虛擬位址到實體位址的轉換
 
-![ref2](https://lompandi.github.io/posts/post3/imgs/x64-paging.png
+![ref2](https://lompandi.github.io/posts/post3/imgs/x64-paging.png)
 
 控制暫存器 CR3 負責指定4級分頁表(PLM4)。
 
