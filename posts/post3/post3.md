@@ -22,9 +22,59 @@
 
 核心偵錯和一般偵錯不太一樣，所以這裡抽一篇幅來講如何使用虛擬機配置核心偵錯環境。
 
-這裡講量種不同的虛擬機配置，HyperV 和 VMWare。
+這裡講量種不同的虛擬機配置，HyperV 和 VMware。
 
-* ### VMware
+<details>
+  <summary style="font-size: 20px; font-weight: bold;">Hyper-V</summary>
+    首先，加設好一台 Windows VM，並以管理員身分執行 CMD。
+
+* #### 啟用偵錯模式 
+    輸入 ```bcdedit```
+    
+    ![ref8](https://lompandi.github.io/posts/post3/imgs/checkset.png)
+    
+    你應該會看到 ```debug           No```，這代表偵錯模式已關閉，我們要打開它。很簡單，輸入:
+    
+    ```bcdedit /debug on``` 即可。
+    ```
+    C:\Windows\System32>bcdedit /debug on
+    The operation completed successfully.
+    ```
+    
+    如果不行的話，去看一下 VM 的安全開機 (Secure Boot) 選項是否開啟，如果是，關掉它。
+
+    選擇虛擬機器。右鍵點擊虛擬機，然後點擊設定。
+
+    在左側窗格中，按一下「安全性」標籤。
+    
+    然後在「安全啟動」下，取消選取「啟用安全啟動」。
+
+    ![ref9](https://lompandi.github.io/posts/post3/imgs/secure-boot-disable.png)
+    
+* #### 設定遠端偵錯選項
+    首先，開啟```虛擬交換器管理員 -> 建立虛擬交換器(S)```，將連線類型改為```外部網路(E)```，取個名稱並在下方清單中選取你實體機的網路卡，然後按下```確定(O)```
+    
+    ![ref10](https://lompandi.github.io/posts/post3/imgs/1.png)
+    ![ref11](https://lompandi.github.io/posts/post3/imgs/2.png)
+    ![ref12](https://lompandi.github.io/posts/post3/imgs/3.png)
+
+    接下來重新啟動，並開啟 CMD，輸入```ipconfig``` 以得到 Local IP，確認他的 IP 遮罩是否跟你實體機的一樣。
+
+    在以管理員身分執行的 CMD輸入 ```bcdedit /dbgsettings NET HOSTIP:<電腦的本地IP(LAN)>  PORT:<連線的通訊埠號> KEY:p.a.s.s```
+    ```KEY``` 要設甚麼都可以，開心就好。
+    
+    ```
+    C:\Windows\System32>bcdedit /dbgsettings NET HOSTIP:192.168.1.105 PORT:50000 KEY:p.a.s.s
+    The operation completed successfully.
+    ```
+
+    完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, POST, KEY 會因設定而異)
+    
+    ![ref9](https://lompandi.github.io/posts/post3/imgs/checksettings.png)
+</details>
+
+<details>
+  <summary style="font-size: 20px; font-weight: bold;">VMware (Workstation)</summary>
     首先，加設好一台 Windows VM，並以管理員身分執行 CMD。
 
 * #### 啟用偵錯模式 
@@ -64,9 +114,37 @@
     
     接下來去 Windows VM 中的設定關掉防火牆，然後就設定完成了。
     
+</details>
+    
 * #### 開始用 kd 遠端偵錯
+ 
+    因為我個人偏好在 CMD 中使用 kd ， 所以我會將 kd 的 路徑 ```C:\Program Files (x86)\Windows Kits\10\Debuggers\x64 ``` 加到環境變數 ```PATH``` 中。
+
+    之後，就可以在 使用這個指令 
     
+    ```kd -k net:port=<連線的通訊埠號>,key=<設定的KEY值>```
     
+    來嘗試連接了。
+    
+    有時候它可能偵測不到，就再加一個參數 target 指定目標 IP
+    
+    ```kd -k net:port=<連線的通訊埠號>,key=<設定的KEY值>,target=<被偵錯機器的IP>```
+    
+    ![ref10](https://lompandi.github.io/posts/post3/imgs/connected.png)
+    
+    如果你看到 ```Connected to target ... ```，那就代表你連接上了，這個時候像 windbg 一樣按 Ctrl-C 或 break 可以中斷 VM 執行。
+    
+* ## kd 基本指令介紹:
+    以下指令所涉及的資料型別大小均以 64 位元架構為基準。 
+
+
+    |指令|功能|
+    |---|-----|
+    |dx 虛擬位址| 傾印**虛擬位址**中記憶體內容。 x 為單位大小和格式，可為 ```c、 b、 w、 d、 q、 p```，分別代表 char (1個位元組，並提供位元 ASCII 碼轉換資料)、byte (1個位元組)，word (2個位元組)、doubleword (4個位元組)、quadword (8個位元組)，和 pointer (8 位元組)。e.g. ```dq fffff807`1d800000```
+    |!dx 實體位址| 傾印**實體位址**中記憶體內容。和 ```dx``` 用法一樣。e.g. ```!dq fffff807`1d800000```
+    |bp 位址| 於位址上設置一個中斷點，位址格式可使用完全位址 e.g. ```bp fffff807`1d800000```，也可使用 mod + offset 定址 e.g. ```bp cmd.exe+0x1234```。
+    |r 暫存器|顯示暫存器內的值 e.g. ```r rax```，若不指定，將列出一些常見的暫存器內的值。|
+    |ex 虛擬位址 值|寫入單位大小和格式為x的值到虛擬位址中，x 的種類和 ```dx``` 一樣。|
 
 ## II.1 控制暫存器
 如果平時有在碰逆向工程相關方面的話，對於 Rax, Rcx, Rbx, Rdx, Rsi, Rsp, Rdi, Rbp, R8 ~ R15
