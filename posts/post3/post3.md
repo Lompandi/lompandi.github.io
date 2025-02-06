@@ -35,8 +35,9 @@
     
     你應該會看到 ```debug           No```，這代表偵錯模式已關閉，我們要打開它。很簡單，輸入:
     
-    ```bcdedit /debug on``` 即可。
+    ```bcdedit /debug on``` 即可。 
 
+    成功的話會長這個樣子
     ```
     C:\Windows\System32>bcdedit /debug on
     The operation completed successfully.
@@ -50,7 +51,7 @@
     
     然後在「安全啟動」下，取消選取「啟用安全啟動」。
 
-    ![ref9](https://lompandi.github.io/posts/post3/imgs/secure-boot-disable.png)
+    ![ref9](https://lompandi.github.io/posts/post3/imgs/secure_boot_disable.png)
     
 * #### 設定遠端偵錯選項
     首先，開啟```虛擬交換器管理員 -> 建立虛擬交換器(S)```，將連線類型改為```外部網路(E)```，取個名稱並在下方清單中選取你實體機的網路卡，然後按下```確定(O)```
@@ -65,6 +66,7 @@
     
     ```KEY```  要設甚麼都可以，開心就好。
     
+    成功的話會長這個樣子
     ```
     C:\Windows\System32>bcdedit /dbgsettings NET HOSTIP:192.168.1.105 PORT:50000 KEY:p.a.s.s
     The operation completed successfully.
@@ -87,6 +89,8 @@
     你應該會看到 ```debug           No```，這代表偵錯模式已關閉，我們要打開它。很簡單，輸入:
     
     ```bcdedit /debug on``` 即可。
+
+    成功的話會長這個樣子
     ```
     C:\Windows\System32>bcdedit /debug on
     The operation completed successfully.
@@ -105,6 +109,7 @@
     在以管理員身分執行的 CMD輸入 ```bcdedit /dbgsettings NET HOSTIP:<電腦的本地IP(LAN)>  PORT:<連線的通訊埠號> KEY:p.a.s.s```
     ```KEY``` 要設甚麼都可以，開心就好。
     
+    成功的話會長這個樣子
     ```
     C:\Windows\System32>bcdedit /dbgsettings NET HOSTIP:192.168.1.105 PORT:50000 KEY:p.a.s.s
     The operation completed successfully.
