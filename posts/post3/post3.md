@@ -36,6 +36,7 @@
     你應該會看到 ```debug           No```，這代表偵錯模式已關閉，我們要打開它。很簡單，輸入:
     
     ```bcdedit /debug on``` 即可。
+
     ```
     C:\Windows\System32>bcdedit /debug on
     The operation completed successfully.
@@ -61,7 +62,8 @@
     接下來重新啟動，並開啟 CMD，輸入```ipconfig``` 以得到 Local IP，確認他的 IP 遮罩是否跟你實體機的一樣。
 
     在以管理員身分執行的 CMD輸入 ```bcdedit /dbgsettings NET HOSTIP:<電腦的本地IP(LAN)>  PORT:<連線的通訊埠號> KEY:p.a.s.s```
-    ```KEY``` 要設甚麼都可以，開心就好。
+    
+    ```KEY```  要設甚麼都可以，開心就好。
     
     ```
     C:\Windows\System32>bcdedit /dbgsettings NET HOSTIP:192.168.1.105 PORT:50000 KEY:p.a.s.s
