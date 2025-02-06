@@ -74,7 +74,7 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     width: 90%;
     max-width: 100%;
-    height: auto;
+    max-height: 900px;
     overflow-y: auto;
     position: relative;
     z-index: 3;
@@ -82,11 +82,8 @@ body {
     opacity: 1; /* Initially visible */
     transition: transform 0.3s ease, opacity 0.3s ease; /* Smooth transitions for movement and fading */
     color: aliceblue;
-}
-
-#markdown-container {
     padding: 40px;
-    padding-bottom: 60px;  /* Added padding at the bottom */
+    padding-bottom: 60px; 
 }
 
 #markdown-container::-webkit-scrollbar {
