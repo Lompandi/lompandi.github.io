@@ -463,7 +463,7 @@ kd> !dq 0x02000000
 ## II.4 分級保護域
 ![ref15](https://lompandi.github.io/posts/post3/imgs/prings.png)
 
-在了解 Windows 的權限分配後，其實度難理解分級保護域這個概念。
+在了解 Windows 的權限分配後，其實不難理解分級保護域這個概念。
 
 **分級保護域**，又叫**保護環**，是一種用來分類不同權限的概念，環的中心(ring 0)擁有最高權限，而 (ring 3)的權限最低，而 Windows 作業系統只用了兩個 rings:
 
@@ -1077,55 +1077,55 @@ __int64 __fastcall DriverEntry(_QWORD *a1)
 }
 ```
 
-它叫了另外一個起始函數 ```sub_140006000```，將它反編譯:
+它叫了另外一個起始函數 ```sub_140006000```，將它反編譯 (已幫大家重新命名所有欄位):
 
 ```c++
-__int64 __fastcall sub_140006000(_QWORD *a1)
+NTSTATUS sub_140006000(PDRIVER_OBJECT pDriverObject)
 {
-  int v2; // edi
-  const char *v3; // rcx
+  NTSTATUS status; // edi
+  const char *cbDbgMsg; // rcx
   unsigned __int64 v4; // rbx
   ULONG v5; // eax
-  char v7; // [rsp+28h] [rbp-40h]
+  bool Exclusive; // [rsp+28h] [rbp-40h]
   struct _UNICODE_STRING v8; // [rsp+40h] [rbp-28h] BYREF
   struct _UNICODE_STRING v9; // [rsp+50h] [rbp-18h] BYREF
-  __int64 v10; // [rsp+80h] [rbp+18h] BYREF
+  PDEVICE_OBJECT pDeviceObj; // [rsp+80h] [rbp+18h] BYREF
 
-  v10 = 0i64;
+  pDeviceObj = 0i64;
   RtlInitUnicodeString(&v8, L"\\Device\\BreathofShadow");
-  v7 = 0;
-  v2 = IoCreateDevice(a1, 0i64, &v8, 34i64, 256, v7, &v10);
-  if ( v2 >= 0 )
+  Exclusive = false;
+  status = IoCreateDevice(pDriverObject, 0i64, &v8, 34i64, 256, Exclusive, &pDeviceObj);
+  if ( status >= 0 )
   {
-    a1[IRP_MJ_DEVICE_CONTROL] = sub_140005110;
-    a1[IRP_MJ_SHUTDOWN] = sub_140005110;
-    a1[28] = sub_140005130;
-    a1[13] = sub_1400051C0;
+    pDriverObject->MajorFunction[IRP_MJ_CREATE] = sub_140005110;
+    pDriverObject->MajorFunction[IRP_MJ_CLOSE] = sub_140005110;
+    pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = sub_140005130;
+    pDriverObject->DriverUnload = sub_1400051C0;
     RtlInitUnicodeString(&v9, L"\\DosDevices\\BreathofShadow");
-    v2 = IoCreateSymbolicLink(&v9, &v8);
-    if ( v2 < 0 )
+    status = IoCreateSymbolicLink(&v9, &v8);
+    if ( status < 0 )
     {
       DbgPrint(aCouldnTCreateS);
-      IoDeleteDevice(v10);
+      IoDeleteDevice(pDeviceObj);
     }
-    *(_DWORD *)(v10 + 48) |= 0x10u;
-    *(_DWORD *)(v10 + 48) &= ~0x80u;
+    *(_DWORD *)(pDeviceObj + 48) |= 0x10u;
+    *(_DWORD *)(pDeviceObj + 48) &= ~0x80u;
     Seed = KeQueryTimeIncrement();
     v4 = (unsigned __int64)RtlRandomEx(&Seed) << 32;
     v5 = RtlRandomEx(&Seed);
-    v3 = "Enable Breath of Shadow Encryptor\n";
+    cbDbgMsg = "Enable Breath of Shadow Encryptor\n";
     qword_140003018 = v4 | v5;
   }
   else
   {
     _mm_lfence();
-    v3 = "Couldn't create the device object\n";
+    cbDbgMsg = "Couldn't create the device object\n";
   }
-  DbgPrint(v3);
-  return (unsigned int)v2;
+  DbgPrint(cbDbgMsg);
+  return status;
 }
 ```
-這裡使用 [IoCreateDevice](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/ddi/wdm/nf-wdm-iocreatedevice) 建立驅動裝置物件，其中 ```a1``` 是一個 PDRIVER_OBJECT，會由 IoCreateDevice 建立後回傳，而 ```v8``` 則是裝置名稱，用於建立與之關聯的任意訪問控制清單（DACL）。
+這裡使用 [IoCreateDevice](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/ddi/wdm/nf-wdm-iocreatedevice) 建立驅動裝置物件，其中 ```pDriverObject``` 是一個 PDRIVER_OBJECT 結構，而 ```v8``` 則是裝置名稱，用於建立與之關聯的任意訪問控制清單（DACL）。
 
 接下來，如果裝置建立成功的話，它會建立 [PDRIVER_OBJECT](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/ddi/wdm/ns-wdm-_driver_object) 中 MajorFunction 的函數進入點，裡面包含如何退出，如何處理資料等自定義的函數。
 
@@ -1137,9 +1137,7 @@ __int64 __fastcall sub_140006000(_QWORD *a1)
 
 接下來，函數生成一個隨機值並將其賦值到一個全域變數。
 
-接下來裝置初始化完成，我們來找一下他 PDRIVER_OBJECT 中 MajorFunction 的主要處理函數。
-
-翻一下後，發現 ```sub_140005130``` 是其處理資料請求的主要函數(幫大家重新命名所有欄位):
+接下來裝置初始化完成，我們來看一下他處理 DeviceIoControl 的函數 ```sub_140005130```
 
 ```c++
 NTSTATUS sub_140005130(__int64 a1, PIRP pIrp)
