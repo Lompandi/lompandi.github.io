@@ -330,3 +330,12 @@ kd> dt nt!_KTHREAD
    +0x408 ResourceIndex    : UChar
    +0x409 Spare31          : [3] UChar
    +0x410 EndPadding       : [4] Uint8B
+
+
+
+   應該不是
+因為你使用者分頁再VirtualAlloc時指定RWE就OK了，它的 PDE XD 自然會覆寫 PDPTE 的
+```c++
+VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+```
+那個POC只有RW
