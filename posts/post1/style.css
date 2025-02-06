@@ -84,6 +84,11 @@ body {
     color: aliceblue;
 }
 
+#markdown-container {
+    padding: 40px;
+    padding-bottom: 60px;  /* Added padding at the bottom */
+}
+
 #markdown-container::-webkit-scrollbar {
     width: 0px;
     height: 0px;
