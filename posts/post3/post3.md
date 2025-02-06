@@ -793,7 +793,7 @@ KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，�
 
 這裡使用 HITCON CTF 的題目 [Breath of Shadow](https://github.com/scwuaptx/CTF/tree/master/2019-writeup/hitcon/breathofshadow/challenge) 來示範。
 
-### Setup
+### 1. Setup
 
 題目有一個 BreathofShadow.sys 檔案，它就是 Kernel Driver，我們要讓它在 VM 中運行。
 
@@ -823,7 +823,7 @@ KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，�
 
 現在 Kernel Driver 已經成功運行了。
 
-### 開始遠端偵錯
+### 2. 開始遠端偵錯
 在實體機上，把 kd 連接上 VM，然後按 ```Ctrl-C``` 中斷執行。
 
 ```
@@ -889,6 +889,234 @@ start             end                 module name
 fffff803`8fd40000 fffff803`8fd48000   BreathofShadow   (deferred)
 ```
 這樣就確認完畢了。
+
+### 3. 逆向工程 (使用 IDA Freeware 8.3)
+
+在 BreathofShadow.sys 中，可以看到幾個 Functions，其中有一個 DriverEntry，這就是驅動程式的進入點，就像 exe 中的 main 一樣，將它反編譯:
+
+```c++
+__int64 __fastcall DriverEntry(_QWORD *a1)
+{
+  _security_init_cookie();
+  return sub_140006000(a1);
+}
+```
+
+它叫了另外一個起始函數 ```sub_140006000```，將它反編譯:
+
+```c++
+__int64 __fastcall sub_140006000(_QWORD *a1)
+{
+  int v2; // edi
+  const char *v3; // rcx
+  unsigned __int64 v4; // rbx
+  ULONG v5; // eax
+  char v7; // [rsp+28h] [rbp-40h]
+  struct _UNICODE_STRING v8; // [rsp+40h] [rbp-28h] BYREF
+  struct _UNICODE_STRING v9; // [rsp+50h] [rbp-18h] BYREF
+  __int64 v10; // [rsp+80h] [rbp+18h] BYREF
+
+  v10 = 0i64;
+  RtlInitUnicodeString(&v8, L"\\Device\\BreathofShadow");
+  v7 = 0;
+  v2 = IoCreateDevice(a1, 0i64, &v8, 34i64, 256, v7, &v10);
+  if ( v2 >= 0 )
+  {
+    a1[14] = sub_140005110;
+    a1[16] = sub_140005110;
+    a1[28] = sub_140005130;
+    a1[13] = sub_1400051C0;
+    RtlInitUnicodeString(&v9, L"\\DosDevices\\BreathofShadow");
+    v2 = IoCreateSymbolicLink(&v9, &v8);
+    if ( v2 < 0 )
+    {
+      DbgPrint(aCouldnTCreateS);
+      IoDeleteDevice(v10);
+    }
+    *(_DWORD *)(v10 + 48) |= 0x10u;
+    *(_DWORD *)(v10 + 48) &= ~0x80u;
+    Seed = KeQueryTimeIncrement();
+    v4 = (unsigned __int64)RtlRandomEx(&Seed) << 32;
+    v5 = RtlRandomEx(&Seed);
+    v3 = "Enable Breath of Shadow Encryptor\n";
+    qword_140003018 = v4 | v5;
+  }
+  else
+  {
+    _mm_lfence();
+    v3 = "Couldn't create the device object\n";
+  }
+  DbgPrint(v3);
+  return (unsigned int)v2;
+}
+```
+這裡使用 [IoCreateDevice](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/ddi/wdm/nf-wdm-iocreatedevice) 建立驅動裝置物件，其中 ```a1``` 是一個 PDRIVER_OBJECT，會由 IoCreateDevice 建立後回傳，而 ```v8``` 則是裝置名稱，用於建立與之關聯的任意訪問控制清單（DACL）。
+
+接下來，如果裝置建立成功的話，它會建立 [PDRIVER_OBJECT](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/ddi/wdm/ns-wdm-_driver_object) 中 MajorFunction 的函數進入點，裡面包含如何退出，如何處理資料等自定義的函數。
+
+接下來它使用 [IoCreateSymbolicLink](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/ddi/wdm/nf-wdm-iocreatesymboliclink) 來建立與裝置使用者之間的符號連結。
+
+這裡要來說一下甚麼是 Symbolic Link。一開始在 IoCreateDevice 時傳入的 DeviceName "\\\\Device\\\\BreathofShadow" 只能在核心模式中使用，若要在**使用者模式中訪問驅動裝置就需要 Symbolic Link 來做連結**。
+
+例如，C 硬碟的符號連結名稱是 ``C:``，對應的設備名稱是 ```\Device\HarddiskVolume1```。在驅動程式中，裝置物件名稱需以 ```L"\\Device\\"``` 開頭，其中 "L" 表示字串使用 Unicode 編碼（wchar_t）。而符號連結名稱則需以 ```L"\\DosDevices\\"``` 或 ```L"\\??\\"``` 開頭。
+
+接下來，函數生成一個隨機值並將其賦值到一個全域變數。
+
+接下來裝置初始化完成，我們來找一下他 PDRIVER_OBJECT 中 MajorFunction 的主要處理函數。
+
+翻一下後，發現 ```sub_140005130``` 是其處理資料請求的主要函數(幫大家重新命名所有欄位):
+
+```c++
+NTSTATUS sub_140005130(__int64 a1, PIRP pIrp)
+{
+  NTSTATUS status; // edi
+  PIO_STACK_LOCATION  CurrentIrpStackLocation; // rax
+  __int64 _CurrentIrpStackLocation; // rsi
+
+  status = STATUS_NOT_SUPPORTED;
+  CurrentIrpStackLocation = IoGetCurrentIrpStackLocation(pIrp);
+  _CurrentIrpStackLocation = CurrentIrpStackLocation;
+  if ( CurrentIrpStackLocation )
+  {
+    if (CurrentIrpStackLocation->DeviceIoControl.IoControlCode == 0x9C40240B)
+    {
+      DbgPrint(aBreathOfShadow);
+      status = EncryptionFunction(pIrp, _CurrentIrpStackLocation);
+    }
+    else
+    {
+      DbgPrint("Invalid\n");
+      status = STATUS_INVALID_DEVICE_REQUEST;
+    }
+  }
+  pIrp->Information = NULL;
+  pIrp->Status = status;
+  IofCompleteRequest(pIrp, NULL);
+  return status;
+}
+```
+
+他會呼叫一個 ```EncryptionFunction```(已重新命名)
+
+```c++
+NTSTATUS EncryptionFunction(PIRP pIrp, PIO_STACK_LOCATION CurrentIoStackLocation)
+{
+  void *InputBuffer; // rdi
+  unsigned __int64 InputSize; // rsi
+  size_t OutputBufferSize; // r14
+  int i; // ecx
+  char Dst[256]; // [rsp+30h] [rbp-128h] BYREF
+
+  InputBuffer = CurrentIoStackLocation->DeviceIoControl.Type3InputBuffer;
+  InputSize = CurrentIoStackLocation->DeviceIoControl.InputBufferLength;
+  OutputBufferSize = CurrentIoStackLocation->DeviceIoControl.OutputBufferLength;
+  if ( !InputBuffer )
+    return STATUS_UNSUCCESSFUL;
+  memset(Dst, 0i64, 0x100ui64);
+  ProbeForRead(InputBuffer, 256i64, 1i64);
+  memcpy_0(Dst, InputBuffer, (unsigned int)InputSize);
+  for ( i = 0; i < InputSize >> 3; ++i )
+    Dst[i] ^= qword_140003018;
+  ProbeForWrite(InputBuffer, 256i64, 1i64);
+  memcpy_0(InputBuffer, Dst, OutputBufferSize);
+  return 0i64;
+}
+```
+
+在 ```EncryptionFunction```，它會讀取來自使用者的 InputBuffer，將其拷貝到一個位於核心模式分區中大小為 256 個 bytes 的緩衝區內，將其和初始化時產生的隨機值作 XOR 運算，並將其回傳使用者的緩衝區中。其中 ```ProbeForRead``` 和 ```ProbeForWrite``` 是用來檢查傳入的指標是否位於使用者模式分區中，避免有人直接傳入核心模式分區中的指標去做 Arbitrary Read/Write。
+
+但是，這裡忽略了大小檢查，意味著我們可以寫入超過256位元組的資料，造成 Buffer Overflow。
+
+### 4. Exploitation Start!
+
+我們首先使用 Windows API 寫一個腳本和 BreathofShadow 驅動程序正常溝通  (C++)
+
+```c++
+#include <windows.h>
+#include <cstdint>
+#include <cstdio>
+
+constexpr uint32_t IOCTL_ENCRYPT = 0x9C40240B;
+
+int main()
+{
+    HANDLE hDevice = CreateFileW(L"\\\\.\\BreathofShadow", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM, NULL);
+   
+    if (hDevice == INVALID_HANDLE_VALUE) {
+        puts("[x] Failed to open driver.\n");
+        return 1;
+    }
+    puts("[*] Successfully opened the driver\n");
+    
+    DWORD outSize{};
+    char original_data[256];
+    
+    memset(original_data, 'A', sizeof(original_data));
+    DeviceIoControl(hDevice, IOCTL_ENCRYPT, original_data, sizeof(original_data), NULL, 256, &outSize, NULL);
+}
+```
+
+接著，在 kd 中，於 EncryptionFunction 的兩次 memcpy 各設一個中斷點來觀察IOCTL時的緩衝區變化的情況:
+```
+kd> bp BreathofShadow+506F
+kd> bp BreathofShadow+50BA
+```
+然後編譯並運行腳本。
+
+操作示範:
+
+![ref12](https://lompandi.github.io/posts/post3/vids/save.mp4)
+
+第一次memcpy前:
+```
+Breakpoint 0 hit
+BreathofShadow+0x506f:
+fffff800`1fad506f e80cc1ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
+kd> db rcx L50
+ffff950a`a640d690  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+ffff950a`a640d6a0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+ffff950a`a640d6b0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+ffff950a`a640d6c0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+ffff950a`a640d6d0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+kd> db rdx L50
+00000090`c2b9f630  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f640  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f650  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f660  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f670  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+kd> r r8
+r8=0000000000000100
+kd> g
+```
+可以看到 RDX 指向的資料 (使用者傳入的 Buffer) 中有我們設定的 A 字元，而 RCX 指向的資料 (核心中的 Buffer) 則是清空的狀態，並且 R8 是我們透過 DeviceIoControl 傳入的 InputSize 256。
+
+第二次memcpy前:
+```
+Breakpoint 1 hit
+BreathofShadow+0x50ba:
+fffff800`1fad50ba e8c1c0ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
+kd> db rcx L50
+00000090`c2b9f630  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f640  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f650  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f660  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+00000090`c2b9f670  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+kd> db rdx L50
+ffff950a`a640d690  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+ffff950a`a640d6a0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+ffff950a`a640d6b0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+ffff950a`a640d6c0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+ffff950a`a640d6d0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+kd> r r8
+r8=0000000000000100
+kd> g
+```
+RDX 指向的資料 (核心中的 Buffer) 中有 XOR 後的資料，這將會被拷貝到使用者傳入的 Buffer中，而 R8 是我們透過 DeviceIoControl 傳入的 OutputSize 256。
+
+
+
+
+
 
 
 
