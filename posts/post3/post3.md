@@ -759,7 +759,7 @@ Kernel 做為一個系統中重要的物件，自然不會乖乖站在那邊給�
 * ### KVAS (Kernel Virtual Address Shadow)
 核心頁表隔離機制（KVAS）將程序的頁表根據使用者模式和核心模式分割成兩份(即 Shadowing 的概念)，從而有效防止使用者模式透過旁路攻擊竊取核心模式的敏感數據。這一機制在 Windows 10/11 上預設為開啟狀態。
 
-如果開啟KVAS的話，應用程式會有兩個CR3，分別指向 ```PCB.DirectoryTableBase``` 和 ```PCB.UserDirectoryTableBase``` 兩個 PML4 表基底位址。其中 DirectoryTableBase 為核心 PML4 的基底。而三環的Cr3（UserDirectoryTableBase）只映射了核心 KVASCODE 區段的物理頁（少數r3進入r0的入口），而沒有映射其他區段的，因此透過3環的Cr3來尋找核心 TEXT section 的分頁表，**最多只能找到 PPE，從 PDE 開始就沒又被映射了**。
+如果開啟KVAS的話，應用程式會有兩個CR3，分別指向 ```PCB.DirectoryTableBase``` 和 ```PCB.UserDirectoryTableBase``` 兩個 PML4 表基底位址。其中 DirectoryTableBase 為核心 PML4 的基底。而三環的Cr3（UserDirectoryTableBase）只映射了核心 KVASCODE 區段的物理頁（少數r3進入r0的入口），而沒有映射其他區段的，因此透過3環的Cr3來尋找核心 TEXT section 的分頁表，**最多只能找到 PPE，從 PDE 開始就沒有被映射了**。
 
 * ### KASLR (Kernel Address Space Layout Randomization)
 KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，防止攻擊者透過已知的記憶體位址發起攻擊。這一概念與 ASLR（地址空間佈局隨機化）類似。
@@ -1065,7 +1065,10 @@ kd> bp BreathofShadow+50BA
 
 操作示範:
 
-![ref12](https://lompandi.github.io/posts/post3/vids/save.mp4)
+<video width="640" height="360" controls>
+  <source src="https://lompandi.github.io/posts/post3/vids/save.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
 第一次memcpy前:
 ```
