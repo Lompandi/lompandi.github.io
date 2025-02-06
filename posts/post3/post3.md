@@ -36,12 +36,6 @@
     你應該會看到 ```debug           No```，這代表偵錯模式已關閉，我們要打開它。很簡單，輸入:
     
     ```bcdedit /debug on``` 即可。 
-
-    成功的話會長這個樣子
-    ```
-    C:\Windows\System32>bcdedit /debug on
-    The operation completed successfully.
-    ```
     
     如果不行的話，去看一下 VM 的安全開機 (Secure Boot) 選項是否開啟，如果是，關掉它。
 
@@ -65,12 +59,6 @@
     在以管理員身分執行的 CMD輸入 ```bcdedit /dbgsettings NET HOSTIP:<電腦的本地IP(LAN)>  PORT:<連線的通訊埠號> KEY:p.a.s.s```
     
     ```KEY```  要設甚麼都可以，開心就好。
-    
-    成功的話會長這個樣子
-    ```
-    C:\Windows\System32>bcdedit /dbgsettings NET HOSTIP:192.168.1.105 PORT:50000 KEY:p.a.s.s
-    The operation completed successfully.
-    ```
 
     完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, POST, KEY 會因設定而異)
     
@@ -89,12 +77,6 @@
     你應該會看到 ```debug           No```，這代表偵錯模式已關閉，我們要打開它。很簡單，輸入:
     
     ```bcdedit /debug on``` 即可。
-
-    成功的話會長這個樣子
-    ```
-    C:\Windows\System32>bcdedit /debug on
-    The operation completed successfully.
-    ```
     
     如果不行的話，去看一下 VM 的安全開機 (Secure Boot) 選項是否開啟，如果是，關掉它。
     ![ref9](https://lompandi.github.io/posts/post3/imgs/disable-secure.png)
@@ -108,12 +90,6 @@
 
     在以管理員身分執行的 CMD輸入 ```bcdedit /dbgsettings NET HOSTIP:<電腦的本地IP(LAN)>  PORT:<連線的通訊埠號> KEY:p.a.s.s```
     ```KEY``` 要設甚麼都可以，開心就好。
-    
-    成功的話會長這個樣子
-    ```
-    C:\Windows\System32>bcdedit /dbgsettings NET HOSTIP:192.168.1.105 PORT:50000 KEY:p.a.s.s
-    The operation completed successfully.
-    ```
 
     完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, POST, KEY 會因設定而異)
     
@@ -230,7 +206,7 @@
 
 試圖讀去或寫入位於這一分區的記憶體位址，就會引發**存取違規**，導致系統強制結束該程式。
 
-## - 虛擬位址(線性位址)
+* ## 虛擬位址(線性位址)
 
 ### 歷史
 在**保護模式**引入之前（即 80286 處理器之前），**真實模式（Real Mode）** 是 x86 架構的唯一工作模式，而 真實模式並沒有虛擬位址和特權等級的概念，程式可以任意修改實體記憶體位址處的內容，包括系統程式。這帶給作業系統極大的安全問題。
@@ -259,7 +235,7 @@ union VIRTUAL_ADDRESS {
 
 其中除保留欄位外，剩下的欄位都是用來轉換其到實體位址的，下面慢慢說。
 
-## - 分頁表:
+* ## 分頁表:
 
 ### 說明:
 
@@ -913,10 +889,6 @@ start             end                 module name
 fffff803`8fd40000 fffff803`8fd48000   BreathofShadow   (deferred)
 ```
 這樣就確認完畢了。
-
-
-
-
 
 
 
