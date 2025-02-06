@@ -1,4 +1,4 @@
-# Windows Kernel Driver - 初步理解和提權探討
+# Windows Kernel Driver - 初步理解和提權探討ˋ
 
 
 ## I. Kernel Driver 是甚麼
@@ -769,17 +769,153 @@ nt authority/system
     
     接下來，幫我們遇到可以掌握 Kernel Driver 的 Execution Flow 的場景，就可以用這支小程式提權了!
 
-## IV Exploiting The Kernel Driver
+## IV 核心保護機制和繞過
 
+## IV.1 核心保護
 Kernel 做為一個系統中重要的物件，自然不會乖乖站在那邊給你打，Kernel Mode 有一套有別於 User Mode 的保護，最常見的有下列幾項:
 
 * ### SMAP (Supervisor Mode Access Prevention)
-由控制暫存 Cr4 中的第 20 個位元控制。若開啟，將**禁止核心模式的程序直接存取所有使用者模式分區的資料**。
+由控制暫存 Cr4 中的第 21 個位元控制。若開啟，將**禁止核心模式的程序直接存取所有使用者模式分區的資料**。
 
 * ### SMEP (Supervisor Mode Execution Prevention)
 由控制暫存 Cr4 中的第 20 個位元控制。若開啟，將**禁止核心模式的程序執行位於使用者模式分區的代碼**。
 
 * ### KVAS (Kernel Virtual Address Shadow)
+核心頁表隔離機制（KVAS）將程序的頁表根據使用者模式和核心模式分割成兩份(即 Shadowing 的概念)，從而有效防止使用者模式透過旁路攻擊竊取核心模式的敏感數據。這一機制在 Windows 10/11 上預設為開啟狀態。
+
+如果開啟KVAS的話，應用程式會有兩個CR3，分別指向 ```PCB.DirectoryTableBase``` 和 ```PCB.UserDirectoryTableBase``` 兩個 PML4 表基底位址。其中 DirectoryTableBase 為核心 PML4 的基底。而三環的Cr3（UserDirectoryTableBase）只映射了核心 KVASCODE 區段的物理頁（少數r3進入r0的入口），而沒有映射其他區段的，因此透過3環的Cr3來尋找核心 TEXT section 的分頁表，**最多只能找到 PPE，從 PDE 開始就沒又被映射了**。
+
+* ### KASLR (Kernel Address Space Layout Randomization)
+KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，防止攻擊者透過已知的記憶體位址發起攻擊。這一概念與 ASLR（地址空間佈局隨機化）類似。
+
+## IV.2 關掉核心保護!!!
+* ### SMAP、SMEP
+    因為這兩項都由 CR4 控制而且沒有寫入保護，故我們只需在**核心模式中**找到類似這樣的 ROP Gadget
+    ```
+    pop rcx; ret
+    ```
+    然後給 RCX 一個20跟21位元都為零的值，再使用這個 Gadget
+    ```
+    mov cr4, rcx; ret 
+    ```
+    現在 CR4 中 20 和 21 位元的值都為0了，代表我們把 SMEP 和 SMAP 都關掉了。
+
+
+    (註: AMD 處理器上不能動 CR4 的 Reserved 欄位，不然它會 GPF 然後不會讓你執行 ```mov cr4, rcx```)
+
+* ### KASLR
+    和 ASLR 一樣，你需要 Leak 核心模式記憶體中的指標，然後藉由指標去定位程序的基底位址。
+
+* ### KVAS 
+    這個對本篇的影響不大，提供一個 CMD 指令腳本 (.cmd) 給大家參考
+    ```
+    reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverride /t REG_DWORD /d 3 /f
+    reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
+    ```
+
+## V. 範例
+
+這裡使用 HITCON CTF 的題目 [Breath of Shadow](https://github.com/scwuaptx/CTF/tree/master/2019-writeup/hitcon/breathofshadow/challenge) 來示範。
+
+### Setup
+
+題目有一個 BreathofShadow.sys 檔案，它就是 Kernel Driver，我們要讓它在 VM 中運行。
+
+* ### 啟用測試簽署驅動程式
+ 
+首先，在 Windows VM 以管理員身分執行 CMD，並輸入 ```bcdedit /set testsigning on```
+
+![ref11](https://lompandi.github.io/posts/post3/imgs/opents.png)
+
+不這樣做的話它會禁止所有沒有簽章的 Kernel Driver 運行。
+
+(註: 如果 Secure Boot 有開的話，記得關掉，否則無法啟用測試簽署驅動程式)
+
+* ### 註冊驅動程式
+
+在剛剛的 CMD 中輸入 ```sc create BreathofShadow type=kernel binPath=<BreathofShadow.sys 的檔案路徑> start=auto```
+
+![ref12](https://lompandi.github.io/posts/post3/imgs/sc.png)
+
+```start=auto``` 是讓它每次開機自動啟動，如果想手動啟動的話，就不需指定該參數。
+
+* ### 啟動驅動程式
+
+在剛剛的 CMD 中輸入 ```sc start BreathofShadow```
+
+![ref13](https://lompandi.github.io/posts/post3/imgs/sdr.png)
+
+現在 Kernel Driver 已經成功運行了。
+
+### 開始遠端偵錯
+在實體機上，把 kd 連接上 VM，然後按 ```Ctrl-C``` 中斷執行。
+
+```
+C:\Users\USER>kd -k net:port=50000,key=p.a.s.s,target=192.168.1.105
+
+Microsoft (R) Windows Debugger Version 10.0.19041.685 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+Using NET for debugging
+Opened WinSock 2.0
+Using IPv4 only.
+Kernel Debug Target Status: [no_debuggee]; Retries: [0] times in last [7] seconds.
+Waiting to reconnect...
+Connected to target 192.168.1.105 on port 50000 on local IP 192.168.1.105.
+You can get the target MAC address by running .kdtargetmac command.
+Connected to Windows 10 19041 x64 target at (Thu Feb  6 13:33:54.647 2025 (UTC + 8:00)), ptr64 TRUE
+Kernel Debugger connection established.
+Symbol search path is: srv*
+Executable search path is:
+Windows 10 Kernel Version 19041 MP (1 procs) Free x64
+Product: WinNt, suite: TerminalServer SingleUserTS Personal
+Built by: 19041.1.amd64fre.vb_release.191206-1406
+Machine Name:
+Kernel base = 0xfffff803`78400000 PsLoadedModuleList = 0xfffff803`7902a770
+Debug session time: Thu Feb  6 13:33:53.754 2025 (UTC + 8:00)
+System Uptime: 0 days 0:09:20.555
+Break instruction exception - code 80000003 (first chance)
+*******************************************************************************
+*                                                                             *
+*   You are seeing this message because you pressed either                    *
+*       CTRL+C (if you run console kernel debugger) or,                       *
+*       CTRL+BREAK (if you run GUI kernel debugger),                          *
+*   on your debugger machine's keyboard.                                      *
+*                                                                             *
+*                   THIS IS NOT A BUG OR A SYSTEM CRASH                       *
+*                                                                             *
+* If you did not intend to break into the debugger, press the "g" key, then   *
+* press the "Enter" key now.  This message might immediately reappear.  If it *
+* does, press "g" and "Enter" again.                                          *
+*                                                                             *
+*******************************************************************************
+nt!DbgBreakPointWithStatus:
+fffff803`78806e40 cc              int     3
+kd>
+```
+輸入 ```.reload``` 刷新程序模組清單
+```
+kd> .reload
+Connected to Windows 10 19041 x64 target at (Thu Feb  6 13:35:18.706 2025 (UTC + 8:00)), ptr64 TRUE
+Loading Kernel Symbols
+...............................................................
+................................................................
+..................................................
+Loading User Symbols
+
+Loading unloaded module list
+.......
+```
+接下來輸入 ```lm m BreathofShadow``` 來查看 Kernel Driver 
+```
+kd> lm m BreathofShadow
+start             end                 module name
+fffff803`8fd40000 fffff803`8fd48000   BreathofShadow   (deferred)
+```
+這樣就確認完畢了。
+
+
+
 
 
 
