@@ -460,7 +460,182 @@ kd> !dq 0x02000000
 
 可以發現，兩者包含的資訊相同，故我們的轉換計算正確 <span style="font-size: 24px;">😆</span> 。
 
-## III. 特權提升 (Priveledge Esclation) 
+## II.4 分級保護域
+![ref15](https://lompandi.github.io/posts/post3/imgs/prings.png)
+
+在了解 Windows 的權限分配後，其實度難理解分級保護域這個概念。
+
+**分級保護域**，又叫**保護環**，是一種用來分類不同權限的概念，環的中心(ring 0)擁有最高權限，而 (ring 3)的權限最低，而 Windows 作業系統只用了兩個 rings:
+
+|ring 等級|模式|
+|---------|----|
+|ring 0   |核心|
+|ring 3   |使用者|
+
+而 rings 之間有一個"門"，可以限制外層 ring 去存取內層 ring 的內容，
+但內層 ring 則可以任意使用外層 ring 的內容。
+
+## II.5 使用者和 Kernel Driver 的通訊:
+
+* ### IRP (I/O request packets)
+    顧名思義，和網路封包(Network Packet)一樣，是用來傳輸通訊資料的。通訊時，應用程式會發出I/O請求，而作業系統會將其轉換成 IRP 並依照類型分發給不同的處理函數，就像網路封包一樣。
+
+    IRP 的結構中有一個欄位```CurrentStackLocation```它指向一個 ``_IO_STACK_LOCATION``。
+    
+    * #### _IO_STACK_LOCATION
+        ``_IO_STACK_LOCATION`` 包含了使用者從 DeviceIoControl 送過來的資料，其結構如下 (其 union 被簡化為 IOCTL 中會使用到的欄位。):
+    
+        ```c++
+        typedef struct _IO_STACK_LOCATION {
+            UCHAR                  MajorFunction;
+            UCHAR                  MinorFunction;
+            UCHAR                  Flags;
+            UCHAR                  Control;
+            struct {
+                ULONG                   OutputBufferLength;
+                ULONG POINTER_ALIGNMENT InputBufferLength;
+                ULONG POINTER_ALIGNMENT IoControlCode;
+                PVOID                   Type3InputBuffer;
+            } DeviceIoControl;
+        } IO_STACK_LOCATION, *PIO_STACK_LOCATION;
+        ```
+    
+        |欄位|意義|
+        |----|----|
+        |OutputBufferLength| 對應 DeviceIoControl 中的 nOutBufferSize 參數，指定**輸出**緩衝區的大小|
+        |InputBufferLength|對應 DeviceIoControl 中的 nInBufferSize 參數，指定**輸入緩**衝區的大小|
+        |IoControlCode|對應 DeviceIoControl 中的 dwIoControlCode 參數，IOCTL 代碼|
+        |Type3InputBuffer|對應 DeviceIoControl 中的 lpInBuffer 參數，為使用者傳入的資料緩衝區|
+        
+* ## 使用者端
+    * ### IOCTL (I/O Control)
+        在 Windows API 中，我們可以用 ```DeviceIoControl``` 來發出 I/O 請求，並指定 IOCTL 代碼，實現與驅動程序的直接通訊。
+    
+        ```
+        BOOL DeviceIoControl(
+            HANDLE       hDevice,
+            DWORD        dwIoControlCode,
+            LPVOID       lpInBuffer,
+            DWORD        nInBufferSize,
+            LPVOID       lpOutBuffer,
+            DWORD        nOutBufferSize,
+            LPDWORD      lpBytesReturned,
+            LPOVERLAPPED lpOverlapped
+        );
+        ```
+        其中，```hDevice``` 為驅動程式的句柄，之後會說。而 ```dwIoControlCode``` 即為 IOCTL 代碼，
+        IOCTL 請求通過 IRP（I/O Request Packet）傳送，而 IOCTL 代碼則用來指定 I/O 請求的資料類型，並且可以由開發者自定義。
+    
+* ## 核心驅動程序端
+    
+    首先驅動程序首先會註冊驅動程序物件:
+
+    ```c++
+        NTSTATUS
+        DriverEntry(
+            _In_ PDRIVER_OBJECT   DriverObject,
+            _In_ PUNICODE_STRING      RegistryPath
+            )
+        
+        {
+            NTSTATUS        ntStatus;
+            UNICODE_STRING  ntUnicodeString;    // NT Device Name "\Device\SIOCTL"
+            UNICODE_STRING  ntWin32NameString;    // Win32 Name "\DosDevices\IoctlTest"
+            PDEVICE_OBJECT  deviceObject = NULL;    // ptr to device object
+        
+            UNREFERENCED_PARAMETER(RegistryPath);
+        
+            RtlInitUnicodeString( &ntUnicodeString, NT_DEVICE_NAME );
+        
+            ntStatus = IoCreateDevice(
+                DriverObject,                   // Our Driver Object
+                0,                              // We don't use a device extension
+                &ntUnicodeString,               // Device name "\Device\SIOCTL"
+                FILE_DEVICE_UNKNOWN,            // Device type
+                FILE_DEVICE_SECURE_OPEN,        // Device characteristics
+                FALSE,                          // Not an exclusive device
+                &deviceObject );                // Returned ptr to Device Object
+        
+            if ( !NT_SUCCESS( ntStatus ) )
+            {
+                DbgPrint("Couldn't create the device object\n");
+                return ntStatus;
+            }
+        }
+    ```
+
+    然後註冊處理函數，用於處理各項驅動程序操作。如: 載入、退出、處理資料等。
+
+    ```c++
+    DriverObject->MajorFunction[IRP_MJ_CREATE] = MyCreate;
+    DriverObject->MajorFunction[IRP_MJ_CLOSE] = MyClose;
+    DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = MyDeviceControl;
+    DriverObject->DriverUnload = MyUnloadDriver;
+    ```
+    這裡來介紹一下 MajorFunction 中 IRP_MJ_XXX 常見的值和意義:
+    
+    |值|意義|
+    |--|----|
+    |IRP_MJ_CREATE| 當驅動程序被建立時要進行的操作|
+    |IRP_MJ_CLOSE|當驅動程序被關閉(還未移除) 要進行的操作|
+    |IRP_MJ_DEVICE_CONTROL|當使用者傳送 IRP (e.g. 使用 DeviceIoControl 函數) 進來時要進行的操作|
+
+    而驅動程序端則會使用類似這樣的函數來處理 DeviceIoControl:
+    ```c++
+    NTSTATUS MyDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+    {
+        PIO_STACK_LOCATION  irpSp;// Pointer to current stack location
+        NTSTATUS            ntStatus = STATUS_SUCCESS;// Assume success
+        ULONG               inBufLength; // Input buffer length
+        ULONG               outBufLength; // Output buffer length
+        
+        //取得使用者傳過來的資料
+        irpSp = IoGetCurrentIrpStackLocation( Irp );
+        
+        //irpSp->Parameters.DeviceIoControl.InputBufferLength 即為 DeviceIoControl 中的 nInBufferSize 參數
+        inBufLength = irpSp->Parameters.DeviceIoControl.InputBufferLength; 
+        
+        //irpSp->Parameters.DeviceIoControl.OutputBufferLength 即為 DeviceIoControl 中的 nOutBufferSize 參數
+        outBufLength = irpSp->Parameters.DeviceIoControl.OutputBufferLength;
+    
+        if (!inBufLength || !outBufLength)
+        {
+            ntStatus = STATUS_INVALID_PARAMETER;
+            goto End;
+        }
+        
+        //根據 IOCTL 代碼來執行不同的程式碼。
+        switch ( irpSp->Parameters.DeviceIoControl.IoControlCode ) 
+        {
+        case IOCTL_PRINT_HELLO_WORLD:
+            DbgPrint("Hello From Kernel!\n");
+            Irp->IoStatus.Information = NULL;
+            break;
+            
+        case IOCTL_GET_DATA_FROM_USER:
+            inBuf = Irp->AssociatedIrp.SystemBuffer;
+    
+            DbgPrint("\tData from User : \n");
+            PrintChars(inBuf, inBufLength);
+            Irp->IoStatus.Information = (outBufLength<datalen?outBufLength:datalen);
+            break;
+    
+        default:
+            ntStatus = STATUS_INVALID_DEVICE_REQUEST;
+            DbgPrint("ERROR: unrecognized IOCTL %x\n",
+                irpSp->Parameters.DeviceIoControl.IoControlCode);
+            break;
+        }
+    
+    End:
+        Irp->IoStatus.Status = ntStatus;
+        IoCompleteRequest( Irp, IO_NO_INCREMENT );
+        return ntStatus;
+    }
+    ```
+    
+
+## III 特權提升 (Priveledge Esclation) 
 那之前說到了，Kernel Driver 有比一般應用程式更高的權限，那 Windows 作業系統是如何辨別每個程序的權限呢 ?
 
 這就和**存取權杖** (Access Token) 有關了。
@@ -759,7 +934,7 @@ Kernel 做為一個系統中重要的物件，自然不會乖乖站在那邊給�
 * ### KVAS (Kernel Virtual Address Shadow)
 核心頁表隔離機制（KVAS）將程序的頁表根據使用者模式和核心模式分割成兩份(即 Shadowing 的概念)，從而有效防止使用者模式透過旁路攻擊竊取核心模式的敏感數據。這一機制在 Windows 10/11 上預設為開啟狀態。
 
-如果開啟KVAS的話，應用程式會有兩個CR3，分別指向 ```PCB.DirectoryTableBase``` 和 ```PCB.UserDirectoryTableBase``` 兩個 PML4 表基底位址。其中 DirectoryTableBase 為核心 PML4 的基底。而三環的Cr3（UserDirectoryTableBase）只映射了核心 KVASCODE 區段的物理頁（少數r3進入r0的入口），而沒有映射其他區段的，因此透過3環的Cr3來尋找核心 TEXT section 的分頁表，**最多只能找到 PPE，從 PDE 開始就沒有被映射了**。
+如果開啟KVAS的話，應用程式會有兩個CR3，分別指向 ```PCB.DirectoryTableBase``` 和 ```PCB.UserDirectoryTableBase``` 兩個 PML4 表基底位址。其中 DirectoryTableBase 為核心 PML4 的基底。而使用者模式的Cr3（UserDirectoryTableBase）只映射了核心 KVASCODE 區段的物理頁（少數ring 3進入ring 0的入口），而沒有映射其他區段的，因此透過3環的Cr3來尋找核心 TEXT section 的分頁表，**最多只能找到 PPE，從 PDE 開始就沒有被映射了**。
 
 * ### KASLR (Kernel Address Space Layout Randomization)
 KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，防止攻擊者透過已知的記憶體位址發起攻擊。這一概念與 ASLR（地址空間佈局隨機化）類似。
@@ -922,8 +1097,8 @@ __int64 __fastcall sub_140006000(_QWORD *a1)
   v2 = IoCreateDevice(a1, 0i64, &v8, 34i64, 256, v7, &v10);
   if ( v2 >= 0 )
   {
-    a1[14] = sub_140005110;
-    a1[16] = sub_140005110;
+    a1[IRP_MJ_DEVICE_CONTROL] = sub_140005110;
+    a1[IRP_MJ_SHUTDOWN] = sub_140005110;
     a1[28] = sub_140005130;
     a1[13] = sub_1400051C0;
     RtlInitUnicodeString(&v9, L"\\DosDevices\\BreathofShadow");
