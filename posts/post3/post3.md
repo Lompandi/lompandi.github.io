@@ -22,7 +22,7 @@
 
 核心偵錯和一般偵錯不太一樣，所以這裡抽一篇幅來講如何使用虛擬機配置核心偵錯環境。
 
-這裡講量種不同的虛擬機配置，HyperV 和 VMware。
+這裡講兩種不同的虛擬機配置，HyperV 和 VMware。
 
 <details>
   <summary style="font-size: 20px; font-weight: bold;">Hyper-V</summary>
